@@ -7,7 +7,7 @@ import AdminHeader from "@/components/AdminHeader";
 import { Printer, Download, Sparkles, Smartphone, UploadCloud, CheckCircle } from "lucide-react";
 
 export default function AdminPosterPage() {
-  const [siteUrl, setSiteUrl] = useState("https://printqr.vercel.app");
+  const [siteUrl, setSiteUrl] = useState("https://print-qr-rose.vercel.app");
   const [qrCodeData, setQrCodeData] = useState<string>("");
 
   useEffect(() => {
