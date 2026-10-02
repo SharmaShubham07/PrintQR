@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getAdminSupabase, isSupabaseConfigured } from "@/lib/supabase";
-import { calculateOrderTotal, PricingConfig, DEFAULT_PRICING } from "@/lib/price-calculator";
+import { calculateOrderTotal, calculateFileCost, PricingConfig, DEFAULT_PRICING, parsePricingRows } from "@/lib/price-calculator";
 
 // In-memory store fallback when running before Supabase keys are configured
 const globalMemoryStore = globalThis as unknown as {
@@ -36,8 +36,22 @@ export async function POST(req: NextRequest) {
       );
     }
 
+    // Fetch live pricing from Supabase
+    let currentPricing = DEFAULT_PRICING;
+    if (isSupabaseConfigured) {
+      try {
+        const client = getAdminSupabase();
+        const { data: pricingRows } = await client.from("pricing").select("*");
+        if (pricingRows && pricingRows.length > 0) {
+          currentPricing = parsePricingRows(pricingRows);
+        }
+      } catch (pErr) {
+        console.error("Error reading pricing from Supabase in orders POST:", pErr);
+      }
+    }
+
     // Calculate total amount server-side for security
-    const { total } = calculateOrderTotal(files, DEFAULT_PRICING);
+    const { total } = calculateOrderTotal(files, currentPricing);
 
     const orderNumber = `PC-${Math.floor(1000 + Math.random() * 9000)}`;
     const accessToken = crypto.randomUUID();
@@ -157,7 +171,7 @@ export async function POST(req: NextRequest) {
         duplex: f.duplex || "single",
         page_range: f.page_range || "all",
         printer_id: f.printer_id || (f.color_mode === "color" ? "22222222-2222-2222-2222-222222222222" : "11111111-1111-1111-1111-111111111111"),
-        price: f.price,
+        price: calculateFileCost(f, currentPricing),
         status: "pending",
       }));
 

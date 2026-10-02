@@ -54,7 +54,7 @@ export default function OrderSummary({
                         : "bg-slate-100 text-slate-700 border border-slate-200"
                     }`}
                   >
-                    {file.color_mode === "color" ? "Colour (₹10)" : "B&W (₹8)"}
+                    {file.color_mode === "color" ? `Colour (₹${pricing.color_page})` : `B&W (₹${pricing.bw_page})`}
                   </span>
 
                   <span className="inline-flex items-center gap-1 bg-slate-50 px-2 py-0.5 rounded-md border border-slate-200">

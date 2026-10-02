@@ -15,6 +15,22 @@ export const DEFAULT_PRICING: PricingConfig = {
 };
 
 /**
+ * Parses raw pricing rows from Supabase into PricingConfig object
+ */
+export function parsePricingRows(rows: any[] | null | undefined): PricingConfig {
+  const config = { ...DEFAULT_PRICING };
+  if (!Array.isArray(rows)) return config;
+  for (const r of rows) {
+    if (!r || !r.key) continue;
+    const rateNum = Number(r.rate);
+    if (!isNaN(rateNum) && r.key in config) {
+      (config as any)[r.key] = rateNum;
+    }
+  }
+  return config;
+}
+
+/**
  * Calculates single file cost based on pages, copies, color mode, duplex and pricing rates
  */
 export function calculateFileCost(

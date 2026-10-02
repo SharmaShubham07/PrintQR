@@ -11,7 +11,7 @@ import { Language, OrderFileItem, ColorMode, DuplexMode, PaperSize, PaymentMetho
 import { supabase } from "@/lib/supabase";
 import { translations } from "@/lib/translations";
 import { calculateEffectivePages } from "@/lib/pdf-utils";
-import { calculateFileCost, calculateOrderTotal, DEFAULT_PRICING } from "@/lib/price-calculator";
+import { calculateFileCost, calculateOrderTotal, DEFAULT_PRICING, parsePricingRows, PricingConfig } from "@/lib/price-calculator";
 import { 
   User, 
   Phone, 
@@ -43,6 +43,9 @@ export default function CustomerPortal() {
   const [files, setFiles] = useState<OrderFileItem[]>([]);
   const [activeFileIndex, setActiveFileIndex] = useState<number>(0);
 
+  // Live pricing
+  const [pricing, setPricing] = useState<PricingConfig>(DEFAULT_PRICING);
+
   // Tracking existing order
   const [trackTokenInput, setTrackTokenInput] = useState<string>("");
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
@@ -66,6 +69,18 @@ export default function CustomerPortal() {
       console.error("Error fetching live printers:", err);
     } finally {
       setIsRefreshingPrinters(false);
+    }
+  };
+
+  const fetchLivePricing = async () => {
+    try {
+      const res = await fetch("/api/admin/pricing");
+      const data = await res.json();
+      if (data.success && data.pricing) {
+        setPricing(data.pricing);
+      }
+    } catch (err) {
+      console.error("Error fetching live pricing:", err);
     }
   };
 
@@ -93,6 +108,9 @@ export default function CustomerPortal() {
 
         // Fetch live connected printers directly from system
         await fetchLivePrinters();
+
+        // Fetch live pricing
+        await fetchLivePricing();
       } catch (err) {
         console.error("Error loading shop config:", err);
       }
@@ -101,7 +119,7 @@ export default function CustomerPortal() {
     loadShopConfig();
 
     // Subscribe to realtime printer updates
-    const channel = supabase
+    const printerChannel = supabase
       .channel("customer-live-printers")
       .on(
         "postgres_changes",
@@ -112,10 +130,34 @@ export default function CustomerPortal() {
       )
       .subscribe();
 
+    // Subscribe to realtime pricing updates
+    const pricingChannel = supabase
+      .channel("customer-live-pricing")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "pricing" },
+        () => {
+          fetchLivePricing();
+        }
+      )
+      .subscribe();
+
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(printerChannel);
+      supabase.removeChannel(pricingChannel);
     };
   }, []);
+
+  // Whenever live pricing updates, recalculate file costs
+  useEffect(() => {
+    setFiles((prev) => {
+      if (prev.length === 0) return prev;
+      return prev.map((f) => ({
+        ...f,
+        price: calculateFileCost(f, pricing),
+      }));
+    });
+  }, [pricing]);
 
   // Validation
   const isFilesValid = files.length > 0;
@@ -144,7 +186,7 @@ export default function CustomerPortal() {
       );
     }
 
-    target.price = calculateFileCost(target, DEFAULT_PRICING);
+    target.price = calculateFileCost(target, pricing);
     updated[index] = target;
     setFiles(updated);
   };
@@ -252,7 +294,7 @@ export default function CustomerPortal() {
     }
   };
 
-  const { total } = calculateOrderTotal(files, DEFAULT_PRICING);
+  const { total } = calculateOrderTotal(files, pricing);
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-slate-50 to-indigo-50/20">
@@ -339,6 +381,7 @@ export default function CustomerPortal() {
               onChange={setFiles}
               language={language}
               maxSizeMb={25}
+              pricing={pricing}
             />
 
             {/* Optional Instructions Drawer */}
@@ -419,7 +462,7 @@ export default function CustomerPortal() {
             {/* Selected File Settings Card */}
             {(() => {
               const currentFile = files[activeFileIndex] || files[0];
-              const fileCost = calculateFileCost(currentFile, DEFAULT_PRICING);
+              const fileCost = calculateFileCost(currentFile, pricing);
 
               return (
                 <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-xs space-y-6">
@@ -460,7 +503,7 @@ export default function CustomerPortal() {
                               : "border-slate-200 text-slate-600 hover:bg-slate-50"
                           }`}
                         >
-                          <div className="text-sm font-semibold">{t.bw_label}</div>
+                          <div className="text-sm font-semibold">{t.bw_label} (₹{pricing.bw_page}/page)</div>
                           <div className="text-xs text-slate-500 mt-0.5">Standard documents & text</div>
                         </button>
 
@@ -473,7 +516,7 @@ export default function CustomerPortal() {
                               : "border-slate-200 text-slate-600 hover:bg-slate-50"
                           }`}
                         >
-                          <div className="text-sm font-semibold">{t.color_label}</div>
+                          <div className="text-sm font-semibold">{t.color_label} (₹{pricing.color_page}/page)</div>
                           <div className="text-xs text-slate-500 mt-0.5">Color photos, charts & slides</div>
                         </button>
                       </div>

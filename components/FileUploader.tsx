@@ -4,7 +4,7 @@ import React, { useRef, useState } from "react";
 import { OrderFileItem, Language } from "@/lib/types";
 import { translations } from "@/lib/translations";
 import { detectFilePageCount, calculateEffectivePages } from "@/lib/pdf-utils";
-import { calculateFileCost } from "@/lib/price-calculator";
+import { calculateFileCost, PricingConfig } from "@/lib/price-calculator";
 import { 
   UploadCloud, 
   FileText, 
@@ -22,9 +22,10 @@ interface Props {
   onChange: (files: OrderFileItem[]) => void;
   language: Language;
   maxSizeMb?: number;
+  pricing?: PricingConfig;
 }
 
-export default function FileUploader({ files, onChange, language, maxSizeMb = 25 }: Props) {
+export default function FileUploader({ files, onChange, language, maxSizeMb = 25, pricing }: Props) {
   const t = translations[language];
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isDragging, setIsDragging] = useState(false);
@@ -75,7 +76,7 @@ export default function FileUploader({ files, onChange, language, maxSizeMb = 25
           copies: 1,
           color_mode: "bw",
           duplex: "single",
-        }),
+        }, pricing),
       };
 
       newItems.push(newItem);
@@ -122,7 +123,7 @@ export default function FileUploader({ files, onChange, language, maxSizeMb = 25
     target.page_count = parsed;
     target.manual_page_override = true;
     target.effective_pages = calculateEffectivePages(target.page_range, parsed);
-    target.price = calculateFileCost(target);
+    target.price = calculateFileCost(target, pricing);
 
     onChange(updated);
     setEditingFileIndex(null);
