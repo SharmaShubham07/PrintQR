@@ -1,6 +1,6 @@
 "use client";
 
-import React from "react";
+import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { 
@@ -12,17 +12,48 @@ import {
   Settings, 
   FileText, 
   BarChart3, 
-  LogOut, 
-  ShieldCheck, 
   Radio 
 } from "lucide-react";
+import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 
 interface Props {
   isAgentOnline?: boolean;
 }
 
-export default function AdminSidebar({ isAgentOnline = true }: Props) {
+export default function AdminSidebar({ isAgentOnline: initialAgentOnline = true }: Props) {
   const pathname = usePathname();
+  const [isAgentOnline, setIsAgentOnline] = useState<boolean>(initialAgentOnline);
+  const [onlinePrinterCount, setOnlinePrinterCount] = useState<number>(0);
+
+  useEffect(() => {
+    async function checkAgentStatus() {
+      if (!isSupabaseConfigured) return;
+      try {
+        const { data: dbPrinters } = await supabase
+          .from("printers")
+          .select("status, last_heartbeat");
+
+        if (dbPrinters && dbPrinters.length > 0) {
+          const now = Date.now();
+          const hasRecentHeartbeat = dbPrinters.some((p) => {
+            if (!p.last_heartbeat) return false;
+            const diffSeconds = (now - new Date(p.last_heartbeat).getTime()) / 1000;
+            return diffSeconds < 90;
+          });
+
+          const onlineCount = dbPrinters.filter((p) => p.status === "online").length;
+          setIsAgentOnline(hasRecentHeartbeat || onlineCount > 0);
+          setOnlinePrinterCount(onlineCount);
+        }
+      } catch (err) {
+        // keep previous state on network error
+      }
+    }
+
+    checkAgentStatus();
+    const interval = setInterval(checkAgentStatus, 8000);
+    return () => clearInterval(interval);
+  }, []);
 
   const navItems = [
     { href: "/admin", label: "Dashboard", icon: LayoutDashboard },
@@ -96,16 +127,19 @@ export default function AdminSidebar({ isAgentOnline = true }: Props) {
             </span>
           </div>
           <p className="text-[10px] text-slate-400 mt-1">
-            Canon MF3010 � Brother T220
+            {onlinePrinterCount > 0
+              ? `${onlinePrinterCount} hardware printer(s) connected`
+              : "Checking local print queue..."}
           </p>
         </div>
 
         <Link
           href="/"
+          target="_blank"
           className="flex items-center justify-between text-xs text-slate-400 hover:text-white px-2 py-1 transition-colors"
         >
           <span>Open Customer Site</span>
-          <span className="text-[10px] bg-slate-800 px-1.5 py-0.5 rounded">?</span>
+          <span className="text-[10px] bg-slate-800 px-1.5 py-0.5 rounded">↗</span>
         </Link>
       </div>
     </aside>
