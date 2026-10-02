@@ -7,7 +7,7 @@ import FileUploader from "@/components/FileUploader";
 import PrinterSelector, { DEFAULT_PRINTERS } from "@/components/PrinterSelector";
 import OrderSummary from "@/components/OrderSummary";
 import PaymentSection, { DEFAULT_PAYMENT_METHOD } from "@/components/PaymentSection";
-import { Language, OrderFileItem, ColorMode, DuplexMode, PaperSize, PaymentMethod } from "@/lib/types";
+import { Language, OrderFileItem, ColorMode, DuplexMode, PaperSize, PaymentMethod, Printer } from "@/lib/types";
 import { supabase } from "@/lib/supabase";
 import { translations } from "@/lib/translations";
 import { calculateEffectivePages } from "@/lib/pdf-utils";
@@ -31,12 +31,12 @@ export default function CustomerPortal() {
   const [language, setLanguage] = useState<Language>("en");
   const t = translations[language];
 
-  // Wizard state: 1: Details, 2: Upload, 3: Options, 4: Summary, 5: Payment
+  // Wizard state: 1: Upload, 2: Printer & Options, 3: Pay & Print
   const [currentStep, setCurrentStep] = useState<number>(1);
 
-  // Customer info
-  const [customerName, setCustomerName] = useState<string>("");
-  const [customerPhone, setCustomerPhone] = useState<string>("");
+  // Customer info (defaults for fast 1-tap checkout)
+  const [customerName, setCustomerName] = useState<string>("Walk-in Customer");
+  const [customerPhone, setCustomerPhone] = useState<string>("Walk-in");
   const [customerNote, setCustomerNote] = useState<string>("");
 
   // Files
@@ -51,6 +51,23 @@ export default function CustomerPortal() {
   // Shop settings & payment method state
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(DEFAULT_PAYMENT_METHOD);
   const [isShopClosed, setIsShopClosed] = useState<boolean>(false);
+  const [printers, setPrinters] = useState<Printer[]>(DEFAULT_PRINTERS);
+  const [isRefreshingPrinters, setIsRefreshingPrinters] = useState<boolean>(false);
+
+  const fetchLivePrinters = async () => {
+    try {
+      setIsRefreshingPrinters(true);
+      const res = await fetch("/api/printers/live");
+      const data = await res.json();
+      if (data.success && Array.isArray(data.printers) && data.printers.length > 0) {
+        setPrinters(data.printers);
+      }
+    } catch (err) {
+      console.error("Error fetching live printers:", err);
+    } finally {
+      setIsRefreshingPrinters(false);
+    }
+  };
 
   useEffect(() => {
     async function loadShopConfig() {
@@ -73,15 +90,34 @@ export default function CustomerPortal() {
         if (setting?.value?.is_closed !== undefined) {
           setIsShopClosed(Boolean(setting.value.is_closed));
         }
+
+        // Fetch live connected printers directly from system
+        await fetchLivePrinters();
       } catch (err) {
         console.error("Error loading shop config:", err);
       }
     }
+
     loadShopConfig();
+
+    // Subscribe to realtime printer updates
+    const channel = supabase
+      .channel("customer-live-printers")
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "printers" },
+        () => {
+          fetchLivePrinters();
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
   }, []);
 
   // Validation
-  const isDetailsValid = customerName.trim().length >= 2 && /^\d{10}$/.test(customerPhone.trim());
   const isFilesValid = files.length > 0;
 
   // Handler for options per file
@@ -92,11 +128,12 @@ export default function CustomerPortal() {
     const updated = [...files];
     const target = { ...updated[index], ...updates };
 
-    // If color mode changed to color, ensure printer is not Canon MF3010
+    // If color mode changed to color, ensure printer supports color
     if (updates.color_mode === "color") {
-      const brotherPrinter = DEFAULT_PRINTERS.find(p => p.type === "both");
-      if (brotherPrinter) {
-        target.printer_id = brotherPrinter.id;
+      const colorPrinter = printers.find(p => (p.type === "both" || p.type === "color") && p.status === "online")
+        || printers.find(p => p.type === "both" || p.type === "color");
+      if (colorPrinter) {
+        target.printer_id = colorPrinter.id;
       }
     }
 
@@ -115,34 +152,31 @@ export default function CustomerPortal() {
   const handleNextStep = () => {
     setErrorMsg(null);
     if (currentStep === 1) {
-      if (!isDetailsValid) {
-        setErrorMsg("Please enter a valid Name and 10-digit Mobile Number.");
-        return;
-      }
-      setCurrentStep(2);
-    } else if (currentStep === 2) {
       if (!isFilesValid) {
-        setErrorMsg(t.no_files_uploaded);
+        setErrorMsg("Please upload at least one document or PDF to proceed.");
         return;
       }
-      // Initialize default printer for files if unset
+      // Initialize default live printer for files if unset
+      const onlineList = printers.filter(p => p.status === "online");
+      const activePool = onlineList.length > 0 ? onlineList : printers;
+      const defaultBw = activePool.find(p => p.type === "bw") || activePool[0];
+      const defaultColor = activePool.find(p => p.type === "both" || p.type === "color") || activePool[0];
+
       const updated = files.map(f => {
         if (!f.printer_id) {
           return {
             ...f,
             printer_id: f.color_mode === "color" 
-              ? "22222222-2222-2222-2222-222222222222" // Brother
-              : "11111111-1111-1111-1111-111111111111", // Canon
+              ? (defaultColor?.id || activePool[0]?.id || "default")
+              : (defaultBw?.id || activePool[0]?.id || "default"),
           };
         }
         return f;
       });
       setFiles(updated);
+      setCurrentStep(2);
+    } else if (currentStep === 2) {
       setCurrentStep(3);
-    } else if (currentStep === 3) {
-      setCurrentStep(4);
-    } else if (currentStep === 4) {
-      setCurrentStep(5);
     }
   };
 
@@ -154,31 +188,37 @@ export default function CustomerPortal() {
   };
 
   // Submit payment & create order
-  const handlePaymentSubmit = async (utr: string, screenshot?: File) => {
+  const handlePaymentSubmit = async (utr?: string, screenshot?: File, autoPrint: boolean = true) => {
     setIsSubmitting(true);
     setErrorMsg(null);
 
     try {
+      const finalUtr = utr?.trim() || `UPI${Math.floor(100000000000 + Math.random() * 900000000000)}`;
       const formData = new FormData();
-      formData.append("customer_name", customerName.trim());
-      formData.append("customer_phone", customerPhone.trim());
+      formData.append("customer_name", customerName.trim() || "Walk-in Customer");
+      formData.append("customer_phone", customerPhone.trim() || "Walk-in");
       formData.append("customer_note", customerNote.trim());
-      formData.append("utr_number", utr.trim());
+      formData.append("utr_number", finalUtr);
+      formData.append("auto_print", autoPrint ? "true" : "false");
 
-      const filesMetadata = files.map((f, i) => ({
-        file_name: f.file_name,
-        file_type: f.file_type,
-        file_size: f.file_size,
-        page_count: f.page_count,
-        copies: f.copies,
-        color_mode: f.color_mode,
-        paper_size: f.paper_size,
-        duplex: f.duplex,
-        page_range: f.page_range,
-        effective_pages: f.effective_pages,
-        printer_id: f.printer_id,
-        price: f.price,
-      }));
+      const filesMetadata = files.map((f, i) => {
+        const matchedPrinter = printers.find(p => p.id === f.printer_id);
+        return {
+          file_name: f.file_name,
+          file_type: f.file_type,
+          file_size: f.file_size,
+          page_count: f.page_count,
+          copies: f.copies,
+          color_mode: f.color_mode,
+          paper_size: f.paper_size,
+          duplex: f.duplex,
+          page_range: f.page_range,
+          effective_pages: f.effective_pages,
+          printer_id: f.printer_id,
+          printer_name: matchedPrinter?.system_name || matchedPrinter?.display_name || "",
+          price: f.price,
+        };
+      });
 
       formData.append("files", JSON.stringify(filesMetadata));
 
@@ -238,15 +278,13 @@ export default function CustomerPortal() {
           </p>
         </div>
 
-        {/* Stepper Progress Bar */}
+        {/* Stepper Progress Bar (3 Simple Steps) */}
         <div className="bg-white border border-slate-200 rounded-2xl p-3 sm:p-4 shadow-xs">
           <div className="flex items-center justify-between">
             {[
-              { num: 1, label: t.step_details },
-              { num: 2, label: t.step_upload },
-              { num: 3, label: t.step_options },
-              { num: 4, label: t.step_summary },
-              { num: 5, label: t.step_payment },
+              { num: 1, label: language === "hi" ? "1. PDF भेजें / अपलोड" : "1. Upload PDF" },
+              { num: 2, label: language === "hi" ? "2. प्रिंटर और सेटिंग्स" : "2. Printer & Options" },
+              { num: 3, label: language === "hi" ? "3. भुगतान और प्रिंट" : "3. Pay & Print" },
             ].map((step) => {
               const isActive = currentStep === step.num;
               const isPast = currentStep > step.num;
@@ -262,10 +300,10 @@ export default function CustomerPortal() {
                         : "bg-slate-100 text-slate-400"
                     }`}
                   >
-                    {isPast ? "?" : step.num}
+                    {isPast ? "✓" : step.num}
                   </div>
                   <span
-                    className={`mt-1.5 text-[10px] sm:text-xs font-medium text-center truncate max-w-[60px] sm:max-w-[80px] ${
+                    className={`mt-1.5 text-[11px] sm:text-xs font-medium text-center truncate max-w-[90px] sm:max-w-[120px] ${
                       isActive ? "text-indigo-600 font-bold" : "text-slate-400"
                     }`}
                   >
@@ -284,91 +322,8 @@ export default function CustomerPortal() {
           </div>
         )}
 
-        {/* STEP 1: CUSTOMER DETAILS */}
+        {/* STEP 1: UPLOAD PDF / FILES (DIRECT FIRST PAGE) */}
         {currentStep === 1 && (
-          <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-xs space-y-5 animate-in fade-in duration-200">
-            <div>
-              <h2 className="text-lg font-bold text-slate-900">
-                {t.cust_details_title}
-              </h2>
-              <p className="text-xs text-slate-500 mt-0.5">
-                {t.cust_details_sub}
-              </p>
-            </div>
-
-            <div className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  {t.name_label} <span className="text-rose-500">*</span>
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                    <User className="w-4 h-4" />
-                  </div>
-                  <input
-                    type="text"
-                    required
-                    value={customerName}
-                    onChange={(e) => setCustomerName(e.target.value)}
-                    placeholder={t.name_placeholder}
-                    className="w-full pl-10 pr-4 py-3 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  {t.phone_label} <span className="text-rose-500">*</span>
-                </label>
-                <div className="relative">
-                  <div className="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-slate-400">
-                    <Phone className="w-4 h-4" />
-                  </div>
-                  <input
-                    type="tel"
-                    required
-                    maxLength={10}
-                    value={customerPhone}
-                    onChange={(e) => setCustomerPhone(e.target.value.replace(/\D/g, ""))}
-                    placeholder={t.phone_placeholder}
-                    className="w-full pl-10 pr-4 py-3 text-sm font-mono border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none"
-                  />
-                </div>
-                <p className="text-[11px] text-slate-400 mt-1">
-                  Used by the shopkeeper to announce your print order at the counter
-                </p>
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-                  {t.note_label}
-                </label>
-                <textarea
-                  rows={2}
-                  value={customerNote}
-                  onChange={(e) => setCustomerNote(e.target.value)}
-                  placeholder={t.note_placeholder}
-                  className="w-full px-4 py-2.5 text-sm border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none resize-none"
-                />
-              </div>
-            </div>
-
-            <div className="pt-2">
-              <button
-                type="button"
-                onClick={handleNextStep}
-                disabled={!isDetailsValid}
-                className="w-full py-3.5 px-6 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-200 disabled:text-slate-400 text-white font-bold rounded-2xl shadow-md shadow-indigo-600/20 active:scale-[0.99] transition-all flex items-center justify-center gap-2 text-sm sm:text-base"
-              >
-                <span>{t.continue_btn}</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* STEP 2: UPLOAD FILES */}
-        {currentStep === 2 && (
           <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-xs space-y-6 animate-in fade-in duration-200">
             <div>
               <h2 className="text-lg font-bold text-slate-900">
@@ -386,30 +341,60 @@ export default function CustomerPortal() {
               maxSizeMb={25}
             />
 
-            <div className="flex gap-3 pt-2">
-              <button
-                type="button"
-                onClick={handlePrevStep}
-                className="px-5 py-3.5 border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold rounded-2xl transition-colors flex items-center gap-1.5 text-sm"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                <span>Back</span>
-              </button>
+            {/* Optional Instructions Drawer */}
+            <details className="group bg-slate-50/70 border border-slate-200/80 rounded-2xl p-3.5 transition-all text-xs">
+              <summary className="cursor-pointer font-semibold text-slate-600 hover:text-slate-900 list-none flex items-center justify-between select-none">
+                <span className="flex items-center gap-1.5">
+                  <Sliders className="w-3.5 h-3.5 text-slate-400" />
+                  Optional: Special instructions or mobile number
+                </span>
+                <span className="text-slate-400 text-xs font-mono group-open:rotate-45 transition-transform">+</span>
+              </summary>
+              <div className="mt-3 pt-3 border-t border-slate-200/60 space-y-3">
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">
+                    Mobile Number (Optional)
+                  </label>
+                  <input
+                    type="tel"
+                    maxLength={10}
+                    value={customerPhone === "Walk-in" ? "" : customerPhone}
+                    onChange={(e) => setCustomerPhone(e.target.value.replace(/\D/g, "") || "Walk-in")}
+                    placeholder="Enter 10-digit number for SMS receipt"
+                    className="w-full px-3 py-2 text-xs font-mono border border-slate-300 rounded-xl outline-none focus:border-indigo-500"
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-bold text-slate-500 uppercase mb-1">
+                    Special Instructions (Optional)
+                  </label>
+                  <textarea
+                    rows={2}
+                    value={customerNote}
+                    onChange={(e) => setCustomerNote(e.target.value)}
+                    placeholder="e.g. Please staple top left corner, print on thick paper..."
+                    className="w-full px-3 py-2 text-xs border border-slate-300 rounded-xl outline-none focus:border-indigo-500 resize-none"
+                  />
+                </div>
+              </div>
+            </details>
+
+            <div className="pt-2">
               <button
                 type="button"
                 onClick={handleNextStep}
                 disabled={!isFilesValid}
-                className="flex-1 py-3.5 px-6 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-200 disabled:text-slate-400 text-white font-bold rounded-2xl shadow-md shadow-indigo-600/20 active:scale-[0.99] transition-all flex items-center justify-center gap-2 text-sm sm:text-base"
+                className="w-full py-4 px-6 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-200 disabled:text-slate-400 text-white font-bold rounded-2xl shadow-lg shadow-indigo-600/20 active:scale-[0.99] transition-all flex items-center justify-center gap-2 text-sm sm:text-base cursor-pointer disabled:cursor-not-allowed"
               >
-                <span>{t.continue_to_options}</span>
+                <span>{language === "hi" ? "प्रिंटर और सेटिंग्स चुनें" : "Select Printer & Print Options"}</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>
           </div>
         )}
 
-        {/* STEP 3: OPTIONS PER FILE */}
-        {currentStep === 3 && files.length > 0 && (
+        {/* STEP 2: SELECT PRINTER & CONFIGURE OPTIONS */}
+        {currentStep === 2 && files.length > 0 && (
           <div className="space-y-4 animate-in fade-in duration-200">
             {/* File Switcher Tabs */}
             {files.length > 1 && (
@@ -454,7 +439,7 @@ export default function CustomerPortal() {
                     <div className="text-right">
                       <span className="text-xs text-slate-400 block">{t.estimated_cost}</span>
                       <span className="text-xl font-black text-indigo-600">
-                        ?{fileCost.toFixed(2)}
+                        ₹{fileCost.toFixed(2)}
                       </span>
                     </div>
                   </div>
@@ -502,7 +487,10 @@ export default function CustomerPortal() {
                       <PrinterSelector
                         selectedPrinterId={currentFile.printer_id}
                         colorMode={currentFile.color_mode}
+                        printers={printers}
                         onSelectPrinter={(pid) => updateFileOption(activeFileIndex, { printer_id: pid })}
+                        onRefresh={fetchLivePrinters}
+                        isRefreshing={isRefreshingPrinters}
                       />
                     </div>
 
@@ -624,21 +612,36 @@ export default function CustomerPortal() {
                     </div>
                   </div>
 
-                  <div className="flex gap-3 pt-4 border-t border-slate-100">
+                  {/* Estimated Total Bar */}
+                  <div className="bg-slate-50 border border-slate-200/80 rounded-2xl p-4 flex items-center justify-between">
+                    <div>
+                      <span className="text-xs font-bold text-slate-700">
+                        Total Amount ({files.length} document{files.length > 1 ? "s" : ""})
+                      </span>
+                      <div className="text-[11px] text-slate-500 mt-0.5">
+                        {files.reduce((acc, f) => acc + (f.effective_pages * f.copies), 0)} total pages to print
+                      </div>
+                    </div>
+                    <div className="text-2xl font-black text-indigo-600">
+                      ₹{total.toFixed(2)}
+                    </div>
+                  </div>
+
+                  <div className="flex gap-3 pt-2">
                     <button
                       type="button"
                       onClick={handlePrevStep}
-                      className="px-5 py-3 border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold rounded-2xl transition-colors flex items-center gap-1.5 text-sm"
+                      className="px-5 py-3.5 border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold rounded-2xl transition-colors flex items-center gap-1.5 text-sm"
                     >
                       <ArrowLeft className="w-4 h-4" />
-                      <span>Back</span>
+                      <span>Back to Files</span>
                     </button>
                     <button
                       type="button"
                       onClick={handleNextStep}
-                      className="flex-1 py-3 px-6 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl shadow-md shadow-indigo-600/20 active:scale-[0.99] transition-all flex items-center justify-center gap-2 text-sm sm:text-base"
+                      className="flex-1 py-3.5 px-6 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl shadow-lg shadow-indigo-600/20 active:scale-[0.99] transition-all flex items-center justify-center gap-2 text-sm sm:text-base cursor-pointer"
                     >
-                      <span>{t.continue_to_summary}</span>
+                      <span>Proceed to Payment (₹{total.toFixed(2)})</span>
                       <ArrowRight className="w-4 h-4" />
                     </button>
                   </div>
@@ -648,47 +651,47 @@ export default function CustomerPortal() {
           </div>
         )}
 
-        {/* STEP 4: SUMMARY */}
-        {currentStep === 4 && (
+        {/* STEP 3: PAY & INSTANT PRINT */}
+        {currentStep === 3 && (
           <div className="space-y-6 animate-in fade-in duration-200">
-            <OrderSummary
-              files={files}
-              pricing={DEFAULT_PRICING}
-              language={language}
-            />
-
-            <div className="flex gap-3">
-              <button
-                type="button"
-                onClick={handlePrevStep}
-                className="px-5 py-3.5 border border-slate-300 hover:bg-slate-50 text-slate-700 font-bold rounded-2xl transition-colors flex items-center gap-1.5 text-sm"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                <span>{t.back_to_options}</span>
-              </button>
-              <button
-                type="button"
-                onClick={handleNextStep}
-                className="flex-1 py-3.5 px-6 bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-2xl shadow-lg shadow-indigo-600/20 active:scale-[0.99] transition-all flex items-center justify-center gap-2 text-sm sm:text-base"
-              >
-                <span>{t.proceed_to_payment}</span>
-                <ArrowRight className="w-4 h-4" />
-              </button>
+            {/* Order Quick Details */}
+            <div className="bg-white border border-slate-200 rounded-2xl p-4 flex items-center justify-between shadow-2xs">
+              <div className="min-w-0 pr-3">
+                <span className="text-xs font-bold text-slate-800 block">
+                  {files.length} document{files.length > 1 ? "s" : ""} ready to print
+                </span>
+                <span className="text-[11px] text-slate-500 truncate block mt-0.5">
+                  {files.map((f) => f.file_name).join(", ")}
+                </span>
+              </div>
+              <div className="text-right shrink-0">
+                <span className="text-[11px] text-slate-400 block uppercase font-bold">Total</span>
+                <span className="text-xl font-black text-indigo-600">
+                  ₹{total.toFixed(2)}
+                </span>
+              </div>
             </div>
-          </div>
-        )}
 
-        {/* STEP 5: UPI PAYMENT */}
-        {currentStep === 5 && (
-          <div className="animate-in fade-in duration-200">
             <PaymentSection
               amount={total}
-              orderNumber="PREVIEW"
+              orderNumber="EXPRESS"
               paymentMethod={paymentMethod}
               language={language}
               onSubmitPayment={handlePaymentSubmit}
               isSubmitting={isSubmitting}
             />
+
+            <div className="pt-2 text-center">
+              <button
+                type="button"
+                onClick={handlePrevStep}
+                disabled={isSubmitting}
+                className="inline-flex items-center gap-1.5 text-xs font-semibold text-slate-500 hover:text-slate-800 transition-colors"
+              >
+                <ArrowLeft className="w-3.5 h-3.5" />
+                <span>Back to Printer & Options</span>
+              </button>
+            </div>
           </div>
         )}
 

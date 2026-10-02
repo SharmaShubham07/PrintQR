@@ -14,15 +14,16 @@ export async function POST(req: NextRequest) {
   try {
     const formData = await req.formData();
 
-    const customer_name = formData.get("customer_name") as string;
-    const customer_phone = formData.get("customer_phone") as string;
+    const customer_name = (formData.get("customer_name") as string)?.trim() || `Customer-${Math.floor(100 + Math.random() * 900)}`;
+    const customer_phone = (formData.get("customer_phone") as string)?.trim() || "Walk-in";
     const customer_note = (formData.get("customer_note") as string) || "";
-    const utr_number = formData.get("utr_number") as string;
+    const utr_number = (formData.get("utr_number") as string)?.trim() || `PAY-${Date.now().toString().slice(-8)}`;
     const filesJson = formData.get("files") as string;
+    const autoPrintParam = formData.get("auto_print") as string | null;
 
-    if (!customer_name || !customer_phone || !utr_number || !filesJson) {
+    if (!filesJson) {
       return NextResponse.json(
-        { error: "Missing required fields (name, phone, UTR, files)" },
+        { error: "No print documents provided" },
         { status: 400 }
       );
     }
@@ -44,6 +45,27 @@ export async function POST(req: NextRequest) {
 
     if (isSupabaseConfigured) {
       const supabase = getAdminSupabase();
+
+      // Check auto-print configuration
+      let isAutoPrint = true;
+      if (autoPrintParam !== null) {
+        isAutoPrint = autoPrintParam === "true";
+      } else {
+        try {
+          const { data: setRes } = await supabase
+            .from("settings")
+            .select("value")
+            .eq("key", "shop_info")
+            .maybeSingle();
+          if (setRes?.value?.auto_print_on_payment !== undefined) {
+            isAutoPrint = Boolean(setRes.value.auto_print_on_payment);
+          }
+        } catch (e) {
+          // default to true
+        }
+      }
+
+      const initialStatus = isAutoPrint ? "queued" : "payment_pending";
 
       // 1. Upload any attached screenshot or files to storage bucket
       let screenshotUrl: string | null = null;
@@ -100,7 +122,7 @@ export async function POST(req: NextRequest) {
           customer_name,
           customer_phone,
           customer_note,
-          status: "payment_pending",
+          status: initialStatus,
           total_amount: total,
           utr_number,
           screenshot_url: screenshotUrl,
@@ -111,6 +133,14 @@ export async function POST(req: NextRequest) {
       if (orderErr) {
         console.error("Supabase insert order error:", orderErr);
         throw new Error(orderErr.message);
+      }
+
+      if (initialStatus === "queued") {
+        await supabase.from("print_logs").insert({
+          order_id: orderId,
+          status: "queued",
+          message: "Payment received. Order automatically dispatched to shop printer queue.",
+        });
       }
 
       // 4. Insert order files
@@ -145,11 +175,13 @@ export async function POST(req: NextRequest) {
           id: orderId,
           order_number: orderNumber,
           access_token: accessToken,
-          status: "payment_pending",
+          status: initialStatus,
           total_amount: total,
         },
       });
     }
+
+    const fallbackStatus = autoPrintParam !== "false" ? "queued" : "payment_pending";
 
     // Fallback store for instant local testing
     const newMockOrder = {
@@ -159,7 +191,7 @@ export async function POST(req: NextRequest) {
       customer_name,
       customer_phone,
       customer_note,
-      status: "payment_pending",
+      status: fallbackStatus,
       total_amount: total,
       utr_number,
       created_at: new Date().toISOString(),
@@ -175,7 +207,7 @@ export async function POST(req: NextRequest) {
         id: orderId,
         order_number: orderNumber,
         access_token: accessToken,
-        status: "payment_pending",
+        status: fallbackStatus,
         total_amount: total,
       },
     });

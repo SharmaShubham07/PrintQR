@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "next lint",
-    "db:check": "node scripts/check-db.js"
+    "db:check": "node scripts/check-db.js",
+    "agent": "node print-agent/agent.js"
   },
   "dependencies": {
     "@supabase/ssr": "^0.5.1",

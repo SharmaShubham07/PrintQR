@@ -25,6 +25,10 @@ yarn-error.log*
 # Local environment files (contains secret keys)
 .env*.local
 .env
+print-agent/.env
+
+# Agent Temp Directory
+print-agent/temp/
 
 # Vercel
 .vercel

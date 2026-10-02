@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import AdminSidebar from "@/components/AdminSidebar";
 import AdminHeader from "@/components/AdminHeader";
-import { Settings, Save, Check, ShieldAlert, Clock, Phone, MapPin, Trash2 } from "lucide-react";
+import { Settings, Save, Check, ShieldAlert, Clock, Phone, MapPin, Trash2, Printer, Zap } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 export default function AdminSettingsPage() {
@@ -16,6 +16,7 @@ export default function AdminSettingsPage() {
     working_hours: "08:00 AM - 09:30 PM (Mon-Sat)",
     is_closed: false,
     closed_notice: "Shop is currently closed for the day. Orders will resume tomorrow morning at 08:00 AM.",
+    auto_print_on_payment: true,
     max_file_size_mb: 25,
     retention_days: 2,
   });
@@ -127,6 +128,38 @@ export default function AdminSettingsPage() {
                   />
                 </div>
               )}
+            </div>
+
+            {/* Auto-Print on Payment Toggle */}
+            <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-11 h-11 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                    <Printer className="w-6 h-6" />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
+                      <span>Automatic Printing on Payment</span>
+                      <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                        Active
+                      </span>
+                    </h3>
+                    <p className="text-xs text-slate-500">
+                      When enabled, orders automatically dispatch to the shop printer as soon as the customer pays (bypasses manual counter confirmation).
+                    </p>
+                  </div>
+                </div>
+
+                <label className="relative inline-flex items-center cursor-pointer">
+                  <input
+                    type="checkbox"
+                    checked={settings.auto_print_on_payment ?? true}
+                    onChange={(e) => setSettings({ ...settings, auto_print_on_payment: e.target.checked })}
+                    className="sr-only peer"
+                  />
+                  <div className="w-12 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-indigo-600"></div>
+                </label>
+              </div>
             </div>
 
             {/* General Shop Info */}

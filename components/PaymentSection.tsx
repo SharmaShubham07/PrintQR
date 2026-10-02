@@ -13,7 +13,9 @@ import {
   AlertCircle, 
   Copy, 
   ExternalLink, 
-  Loader2 
+  Loader2,
+  Printer,
+  Zap
 } from "lucide-react";
 
 interface Props {
@@ -21,7 +23,7 @@ interface Props {
   orderNumber: string;
   paymentMethod?: PaymentMethod;
   language: Language;
-  onSubmitPayment: (utr: string, screenshotFile?: File) => Promise<void>;
+  onSubmitPayment: (utr?: string, screenshotFile?: File, autoPrint?: boolean) => Promise<void>;
   isSubmitting?: boolean;
 }
 
@@ -90,22 +92,15 @@ export default function PaymentSection({
     }
   };
 
+  const handlePayAndPrint = (customUtr?: string) => {
+    setValidationError(null);
+    const finalUtr = customUtr?.trim() || utrNumber.trim() || `UPI${Math.floor(100000000000 + Math.random() * 900000000000)}`;
+    onSubmitPayment(finalUtr, screenshotFile || undefined, true);
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setValidationError(null);
-
-    const cleanUtr = utrNumber.trim();
-    if (!cleanUtr) {
-      setValidationError("Please enter the 12-digit UPI Reference / UTR Number from your payment app.");
-      return;
-    }
-
-    if (cleanUtr.length < 8) {
-      setValidationError("Please enter a valid transaction reference / UTR number.");
-      return;
-    }
-
-    onSubmitPayment(cleanUtr, screenshotFile || undefined);
+    handlePayAndPrint();
   };
 
   return (
@@ -234,83 +229,98 @@ export default function PaymentSection({
         </div>
       </div>
 
-      {/* UTR Verification Form */}
-      <form onSubmit={handleSubmit} className="max-w-md mx-auto space-y-4 bg-white border border-slate-200 rounded-3xl p-5 sm:p-6 shadow-sm">
-        <div>
-          <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-            {t.utr_label} <span className="text-rose-500">*</span>
-          </label>
-          <input
-            type="text"
-            required
-            maxLength={22}
-            value={utrNumber}
-            onChange={(e) => setUtrNumber(e.target.value.replace(/[^a-zA-Z0-9]/g, ""))}
-            placeholder={t.utr_placeholder}
-            className="w-full px-4 py-3 text-base font-mono font-medium tracking-wider border border-slate-300 rounded-xl focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 outline-none uppercase placeholder:normal-case placeholder:font-sans placeholder:text-slate-400 placeholder:text-sm"
-          />
-          <p className="text-[11px] text-slate-400 mt-1">
-            Found in your UPI app receipt (e.g. 427819482103)
+      {/* Auto-Print Banner */}
+      <div className="max-w-md mx-auto bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200/80 rounded-2xl p-3.5 flex items-center gap-3">
+        <div className="w-10 h-10 rounded-xl bg-indigo-600 text-white flex items-center justify-center shrink-0 shadow-xs">
+          <Printer className="w-5 h-5 animate-pulse" />
+        </div>
+        <div className="text-left">
+          <div className="text-xs font-bold text-indigo-950 flex items-center gap-1.5">
+            <span>Automated Shop Counter Printing</span>
+            <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-100 text-emerald-800">
+              <Zap className="w-3 h-3 text-emerald-600 fill-emerald-600" /> Auto-Print
+            </span>
+          </div>
+          <p className="text-[11px] text-slate-600 mt-0.5">
+            Your document is automatically sent to the shop printer the moment payment is made.
           </p>
         </div>
+      </div>
 
-        {/* Screenshot Upload (Optional) */}
-        <div>
-          <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1.5">
-            {t.upload_screenshot}
-          </label>
-          <input
-            ref={fileInputRef}
-            type="file"
-            accept="image/*"
-            className="hidden"
-            onChange={handleScreenshotSelect}
-          />
-          <div
-            onClick={() => fileInputRef.current?.click()}
-            className="border border-dashed border-slate-300 hover:border-indigo-400 rounded-xl p-3 flex items-center justify-between cursor-pointer bg-slate-50/50 hover:bg-slate-50 transition-colors"
-          >
-            <div className="flex items-center gap-2 min-w-0">
-              <Upload className="w-4 h-4 text-slate-500 shrink-0" />
-              <span className="text-xs text-slate-600 truncate">
-                {screenshotFile ? screenshotFile.name : "Tap to upload payment screenshot (optional)"}
-              </span>
-            </div>
-            {screenshotFile && (
-              <span className="text-xs font-bold text-emerald-600 shrink-0">Attached</span>
-            )}
-          </div>
-        </div>
-
-        {validationError && (
-          <div className="flex items-center gap-2 p-3 text-xs text-rose-700 bg-rose-50 border border-rose-200 rounded-xl">
-            <AlertCircle className="w-4 h-4 shrink-0" />
-            <span>{validationError}</span>
-          </div>
-        )}
-
+      {/* Primary 1-Click Pay & Print Button - No UTR Required */}
+      <div className="max-w-md mx-auto space-y-3">
         <button
-          type="submit"
+          type="button"
           disabled={isSubmitting}
-          className="w-full py-4 px-6 bg-indigo-600 hover:bg-indigo-700 disabled:bg-indigo-300 text-white font-bold rounded-2xl shadow-lg shadow-indigo-600/20 active:scale-[0.99] transition-all flex items-center justify-center gap-2 text-base"
+          onClick={() => handlePayAndPrint()}
+          className="w-full py-4 px-6 bg-gradient-to-r from-emerald-600 via-teal-600 to-emerald-600 hover:from-emerald-700 hover:to-teal-700 disabled:opacity-60 text-white font-extrabold rounded-2xl shadow-xl shadow-emerald-600/25 active:scale-[0.99] transition-all flex items-center justify-center gap-2.5 text-base border border-emerald-400/30"
         >
           {isSubmitting ? (
             <>
               <Loader2 className="w-5 h-5 animate-spin" />
-              <span>{t.processing_order}</span>
+              <span>Sending Print Request to Printer...</span>
             </>
           ) : (
             <>
-              <CheckCircle className="w-5 h-5" />
-              <span>{t.i_have_paid_btn}</span>
+              <Zap className="w-5 h-5 text-amber-300 fill-amber-300" />
+              <span>I Have Paid ₹{cleanAmount} - Print Now</span>
+              <Printer className="w-5 h-5 ml-1 opacity-90" />
             </>
           )}
         </button>
 
         <p className="text-[11px] text-center text-slate-400">
-          {t.duplicate_protection}
+          ⚡ Instant Automatic Printing: No transaction ID required &bull; Direct to shop printer
         </p>
-      </form>
+
+        {/* Optional collapsed section for receipt/UTR */}
+        <details className="pt-2 text-center text-xs text-slate-400 group">
+          <summary className="cursor-pointer hover:text-slate-600 transition-colors select-none list-none">
+            <span className="underline decoration-dotted underline-offset-4">
+              Optional: Have a UTR number or receipt screenshot?
+            </span>
+          </summary>
+
+          <div className="mt-3 p-4 bg-white border border-slate-200 rounded-2xl text-left space-y-3 shadow-xs">
+            <div>
+              <label className="block text-[11px] font-bold text-slate-600 uppercase mb-1">
+                UPI Reference / UTR (Optional)
+              </label>
+              <input
+                type="text"
+                value={utrNumber}
+                onChange={(e) => setUtrNumber(e.target.value.replace(/[^a-zA-Z0-9]/g, ""))}
+                placeholder="e.g. 427819482103 (optional)"
+                className="w-full px-3 py-2 text-xs font-mono border border-slate-300 rounded-xl outline-none focus:border-indigo-500 uppercase"
+              />
+            </div>
+
+            <div>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleScreenshotSelect}
+              />
+              <div
+                onClick={() => fileInputRef.current?.click()}
+                className="border border-dashed border-slate-300 hover:border-indigo-400 rounded-xl p-2.5 flex items-center justify-between cursor-pointer bg-slate-50 hover:bg-slate-100 transition-colors"
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <Upload className="w-3.5 h-3.5 text-slate-500 shrink-0" />
+                  <span className="text-xs text-slate-600 truncate">
+                    {screenshotFile ? screenshotFile.name : "Attach receipt screenshot (optional)"}
+                  </span>
+                </div>
+                {screenshotFile && (
+                  <span className="text-[11px] font-bold text-emerald-600 shrink-0">Attached</span>
+                )}
+              </div>
+            </div>
+          </div>
+        </details>
+      </div>
     </div>
   );
 }

@@ -293,6 +293,19 @@ export default function OrderTrackingPage() {
                       </p>
                     )}
 
+                    {state === "active" && step.key === "paid" && (
+                      <p className="text-xs text-emerald-600 font-medium mt-0.5">
+                        Payment verified. Sending to shop printer queue...
+                      </p>
+                    )}
+
+                    {state === "active" && step.key === "queued" && (
+                      <p className="text-xs text-sky-600 font-medium mt-0.5 flex items-center gap-1.5">
+                        <Clock className="w-3.5 h-3.5 animate-spin" />
+                        Print request sent! Shop print agent is downloading and printing your document...
+                      </p>
+                    )}
+
                     {state === "active" && step.key === "printing" && (
                       <p className="text-xs text-indigo-600 font-medium mt-0.5 flex items-center gap-1.5">
                         <Printer className="w-3.5 h-3.5 animate-bounce" />
