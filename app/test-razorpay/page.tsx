@@ -19,7 +19,7 @@ export default function RazorpayTestPage() {
   const [logs, setLogs] = useState<Array<{ time: string; type: "info" | "success" | "error"; text: string; data?: any }>>([]);
   const [apiTesting, setApiTesting] = useState<boolean>(false);
 
-  const keyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "";
+  const keyId = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_test_TjKMh7ogcUlyTU";
 
   const addLog = (type: "info" | "success" | "error", text: string, data?: any) => {
     const time = new Date().toLocaleTimeString();

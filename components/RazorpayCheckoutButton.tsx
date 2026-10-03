@@ -86,10 +86,7 @@ export default function RazorpayCheckoutButton({
       }
 
       // Step 3: Open Razorpay Payment Modal
-      const razorpayKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID;
-      if (!razorpayKey) {
-        throw new Error("NEXT_PUBLIC_RAZORPAY_KEY_ID is missing in environment variables.");
-      }
+      const razorpayKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_test_TjKMh7ogcUlyTU";
 
       const options = {
         key: razorpayKey,
