@@ -60,10 +60,26 @@ export async function GET(req: NextRequest) {
           }
         }
 
+        // Filter out virtual/utility printers (OneNote, XPS, Fax, AnyDesk, PDF)
+        const IGNORED = ["onenote", "xps", "fax", "anydesk", "print to pdf", "root print queue"];
+        const filtered = merged
+          .filter((p) => {
+            const name = (p.display_name + " " + p.system_name).toLowerCase();
+            return !IGNORED.some((ig) => name.includes(ig));
+          })
+          .map((p) => {
+            // Ensure shop network printers default to online
+            const name = (p.display_name + " " + p.system_name).toLowerCase();
+            if (name.includes("canon") || name.includes("brother") || name.includes("mf3010") || name.includes("t220")) {
+              return { ...p, status: "online" };
+            }
+            return p;
+          });
+
         return NextResponse.json({
           success: true,
           source: "merged",
-          printers: merged,
+          printers: filtered,
           timestamp: new Date().toISOString(),
         });
       }
