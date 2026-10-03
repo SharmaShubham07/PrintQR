@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useMemo } from "react";
 import QRCode from "qrcode";
 import { Language, PaymentMethod } from "@/lib/types";
 import { translations } from "@/lib/translations";
@@ -82,28 +82,39 @@ export default function PaymentSection({
   const cleanPayee = paymentMethod.payee_name.trim();
   const encodedPayee = encodeURIComponent(cleanPayee);
   const encodedNote = encodeURIComponent(`Order ${orderNumber}`.trim());
-  const cleanTr = encodeURIComponent((orderNumber || "ORDER").replace(/[^a-zA-Z0-9]/g, "") + "_" + Math.floor(100000 + Math.random() * 900000));
 
-  // Clean NPCI-compliant query string (NO &mode=01 so all UPI apps accept it without requiring static QR signature)
-  const upiQuery = `pa=${paymentMethod.upi_id}&pn=${encodedPayee}&am=${cleanAmount}&cu=INR&tn=${encodedNote}&tr=${cleanTr}`;
+  // Stable transaction ref per orderNumber so it does NOT generate a new random value on every render
+  const cleanTr = useMemo(() => {
+    return encodeURIComponent(
+      (orderNumber || "ORDER").replace(/[^a-zA-Z0-9]/g, "") +
+      "_" +
+      Math.floor(100000 + Math.random() * 900000)
+    );
+  }, [orderNumber]);
+
+  // Clean NPCI-compliant query string
+  const upiQuery = useMemo(() => {
+    return `pa=${paymentMethod.upi_id}&pn=${encodedPayee}&am=${cleanAmount}&cu=INR&tn=${encodedNote}&tr=${cleanTr}`;
+  }, [paymentMethod.upi_id, encodedPayee, cleanAmount, encodedNote, cleanTr]);
 
   // Universal UPI URI for standard app pickers, iOS Safari, and QR code image
-  const standardUpiUri = `upi://pay?${upiQuery}`;
+  const standardUpiUri = useMemo(() => `upi://pay?${upiQuery}`, [upiQuery]);
 
-  // Android Chrome Intent URIs (Bypasses Chrome restrictions and directly invokes native Android app picker or specific apps)
-  const androidGenericIntent = `intent://pay?${upiQuery}#Intent;scheme=upi;end;`;
-  const gpayAndroidIntent = `intent://pay?${upiQuery}#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end;`;
-  const phonepeAndroidIntent = `intent://pay?${upiQuery}#Intent;scheme=upi;package=com.phonepe.app;end;`;
-  const paytmAndroidIntent = `intent://pay?${upiQuery}#Intent;scheme=upi;package=net.one97.paytm;end;`;
-  const bhimAndroidIntent = `intent://pay?${upiQuery}#Intent;scheme=upi;package=in.org.npci.upiapp;end;`;
+  // Android Chrome Intent URIs
+  const androidGenericIntent = useMemo(() => `intent://pay?${upiQuery}#Intent;scheme=upi;end;`, [upiQuery]);
+  const gpayAndroidIntent = useMemo(() => `intent://pay?${upiQuery}#Intent;scheme=upi;package=com.google.android.apps.nbu.paisa.user;end;`, [upiQuery]);
+  const phonepeAndroidIntent = useMemo(() => `intent://pay?${upiQuery}#Intent;scheme=upi;package=com.phonepe.app;end;`, [upiQuery]);
+  const paytmAndroidIntent = useMemo(() => `intent://pay?${upiQuery}#Intent;scheme=upi;package=net.one97.paytm;end;`, [upiQuery]);
+  const bhimAndroidIntent = useMemo(() => `intent://pay?${upiQuery}#Intent;scheme=upi;package=in.org.npci.upiapp;end;`, [upiQuery]);
 
   // iOS App-Specific Schemes
-  const gpayIosScheme = `tez://upi/pay?${upiQuery}`;
-  const phonepeIosScheme = `phonepe://pay?${upiQuery}`;
-  const paytmIosScheme = `paytmmp://pay?${upiQuery}`;
+  const gpayIosScheme = useMemo(() => `tez://upi/pay?${upiQuery}`, [upiQuery]);
+  const phonepeIosScheme = useMemo(() => `phonepe://pay?${upiQuery}`, [upiQuery]);
+  const paytmIosScheme = useMemo(() => `paytmmp://pay?${upiQuery}`, [upiQuery]);
 
   // Generate Dynamic QR Code using clean UPI deep link without mode=01
   useEffect(() => {
+    let isCancelled = false;
     QRCode.toDataURL(standardUpiUri, {
       width: 280,
       margin: 2,
@@ -112,8 +123,16 @@ export default function PaymentSection({
         light: "#ffffff",
       },
     })
-      .then((url) => setQrDataUrl(url))
+      .then((url) => {
+        if (!isCancelled) {
+          setQrDataUrl(url);
+        }
+      })
       .catch((err) => console.error("QR generation error:", err));
+
+    return () => {
+      isCancelled = true;
+    };
   }, [standardUpiUri]);
 
   // Resolves primary href for each app button based on user device
