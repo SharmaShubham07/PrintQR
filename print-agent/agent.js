@@ -63,6 +63,18 @@ const DRY_RUN = process.argv.includes("--dry-run") || process.env.DRY_RUN === "t
 
 const isWindows = process.platform === "win32";
 
+// Network printers connected via LAN/Wi-Fi – these do NOT appear in Win32_Printer
+// (they work via browser print dialog / mDNS), so the agent must never auto-mark them offline.
+// Normalized names (lowercase, alphanumeric only) for fuzzy matching.
+const NETWORK_PRINTER_IDS = new Set([
+  "11111111-1111-1111-1111-111111111111", // Canon imageCLASS MF3010
+  "22222222-2222-2222-2222-222222222222", // Brother DCP-T220
+]);
+const NETWORK_PRINTER_NORMS = [
+  "canonmf3010",
+  "brotherdcpt220",
+];
+
 // Locate SumatraPDF executable on Windows
 let sumatraExecutable = "SumatraPDF.exe";
 if (isWindows) {
@@ -238,6 +250,16 @@ async function syncPrintersWithDatabase() {
             console.log(`  -> Synced DB status for ${dbp.system_name}: ${match.status.toUpperCase()}`);
           }
         } else if (dbp.status !== "offline") {
+          // Skip network printers that aren't in Win32_Printer — they're LAN/Wi-Fi printers
+          const isNetworkPrinter =
+            NETWORK_PRINTER_IDS.has(dbp.id) ||
+            NETWORK_PRINTER_NORMS.some(
+              (n) => dbNorm.includes(n) || n.includes(dbNorm)
+            );
+          if (isNetworkPrinter) {
+            console.log(`  ~ Skipping offline mark for network printer: ${dbp.system_name}`);
+            continue;
+          }
           await supabase
             .from("printers")
             .update({ status: "offline", last_heartbeat: timestamp })

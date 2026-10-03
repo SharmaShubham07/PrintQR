@@ -13,15 +13,19 @@ interface Props {
   isRefreshing?: boolean;
 }
 
+// Virtual/utility printers that should never appear in the customer UI
+const VIRTUAL_PRINTER_KEYWORDS = [
+  "microsoft print to pdf",
+  "print to pdf",
+  "fax",
+  "onenote",
+  "anydesk",
+  "xps document writer",
+  "root print queue",
+  "send to onenote",
+];
+
 export const DEFAULT_PRINTERS: Printer[] = [
-  {
-    id: "1e56f4b2-4444-4444-4444-1e56f4b20000",
-    display_name: "Microsoft Print to PDF",
-    system_name: "Microsoft Print to PDF",
-    type: "both",
-    is_active: true,
-    status: "online",
-  },
   {
     id: "11111111-1111-1111-1111-111111111111",
     display_name: "Canon imageCLASS MF3010",
@@ -48,14 +52,20 @@ export default function PrinterSelector({
   onRefresh,
   isRefreshing = false,
 }: Props) {
+  // Filter out virtual/utility printers — only show real hardware printers
+  const realPrinters = printers.filter((p) => {
+    const name = (p.display_name || p.system_name || "").toLowerCase();
+    return !VIRTUAL_PRINTER_KEYWORDS.some((kw) => name.includes(kw));
+  });
+
   // Sort online printers first
-  const sortedPrinters = [...printers].sort((a, b) => {
+  const sortedPrinters = [...realPrinters].sort((a, b) => {
     if (a.status === "online" && b.status !== "online") return -1;
     if (a.status !== "online" && b.status === "online") return 1;
     return a.display_name.localeCompare(b.display_name);
   });
 
-  const onlineCount = printers.filter((p) => p.status === "online").length;
+  const onlineCount = realPrinters.filter((p) => p.status === "online").length;
 
   return (
     <div className="space-y-3">
