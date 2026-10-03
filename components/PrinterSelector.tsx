@@ -28,7 +28,7 @@ export const DEFAULT_PRINTERS: Printer[] = [
     system_name: "Canon_MF3010",
     type: "bw",
     is_active: true,
-    status: "offline",
+    status: "online",
   },
   {
     id: "22222222-2222-2222-2222-222222222222",
@@ -36,7 +36,7 @@ export const DEFAULT_PRINTERS: Printer[] = [
     system_name: "Brother_DCP_T220",
     type: "both",
     is_active: true,
-    status: "offline",
+    status: "online",
   },
 ];
 

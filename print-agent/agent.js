@@ -106,50 +106,65 @@ function scanWindowsPrinters() {
   try {
     const stdout = execSync(
       'powershell -NoProfile -Command "Get-CimInstance -ClassName Win32_Printer | Select-Object Name, DriverName, PrinterStatus, WorkOffline, Default, PortName | ConvertTo-Json -Compress"',
-      { encoding: "utf8", timeout: 7000 }
+      { encoding: "utf8", timeout: 15000 }
     );
     if (!stdout || !stdout.trim()) return [];
 
     const raw = JSON.parse(stdout.trim());
     const list = Array.isArray(raw) ? raw : [raw];
 
-    return list.map((p, idx) => {
-      const name = String(p.Name || `Printer-${idx + 1}`).trim();
-      const driver = String(p.DriverName || "").toLowerCase();
-      const lowerName = name.toLowerCase();
-      const isOffline = Boolean(p.WorkOffline) || p.PrinterStatus === 7;
-      const isDefault = Boolean(p.Default);
+    const IGNORED_NAMES = ["fax", "onenote", "anydesk", "xps document writer", "root print queue"];
 
-      let type = "both";
-      if (
-        lowerName.includes("mf3010") ||
-        lowerName.includes("lbp") ||
-        lowerName.includes("laserjet") ||
-        driver.includes("mono")
-      ) {
-        type = "bw";
-      } else if (
-        lowerName.includes("brother") ||
-        lowerName.includes("t220") ||
-        lowerName.includes("color") ||
-        lowerName.includes("colour") ||
-        lowerName.includes("ink")
-      ) {
-        type = "both";
-      }
+    return list
+      .filter((p) => {
+        const lower = String(p.Name || "").toLowerCase();
+        return !IGNORED_NAMES.some((ig) => lower.includes(ig));
+      })
+      .map((p, idx) => {
+        const name = String(p.Name || `Printer-${idx + 1}`).trim();
+        const driver = String(p.DriverName || "").toLowerCase();
+        const lowerName = name.toLowerCase();
+        const isOffline = Boolean(p.WorkOffline) || p.PrinterStatus === 7;
+        const isDefault = Boolean(p.Default);
 
-      return {
-        id: generateDeterministicId(name),
-        display_name: name,
-        system_name: name,
-        type,
-        status: isOffline ? "offline" : "online",
-        is_default: isDefault,
-        port_name: String(p.PortName || ""),
-        driver_name: p.DriverName || "",
-        is_active: true,
-      };
-    });
+        let type = "both";
+        if (
+          lowerName.includes("mf3010") ||
+          lowerName.includes("lbp") ||
+          lowerName.includes("laserjet") ||
+          lowerName.includes("monochrome") ||
+          driver.includes("mono") ||
+          driver.includes("black and white")
+        ) {
+          type = "bw";
+        } else if (
+          lowerName.includes("brother") ||
+          lowerName.includes("t220") ||
+          lowerName.includes("t420") ||
+          lowerName.includes("t520") ||
+          lowerName.includes("color") ||
+          lowerName.includes("colour") ||
+          lowerName.includes("ink") ||
+          lowerName.includes("ecotank") ||
+          lowerName.includes("smart tank") ||
+          lowerName.includes("pixma") ||
+          driver.includes("color")
+        ) {
+          type = "both";
+        }
+
+        return {
+          id: generateDeterministicId(name),
+          display_name: name,
+          system_name: name,
+          type,
+          status: isOffline ? "offline" : "online",
+          is_default: isDefault,
+          port_name: String(p.PortName || ""),
+          driver_name: p.DriverName || "",
+          is_active: true,
+        };
+      });
   } catch (err) {
     console.error("Printer scan error:", err.message);
     return [];
@@ -194,13 +209,35 @@ async function syncPrintersWithDatabase() {
       );
     }
 
-    // 2. Any printer in the DB that is NOT in Windows gets marked offline
-    const detectedNames = new Set(livePrinters.map((p) => p.system_name.toLowerCase()));
+    // 2. Sync database printers with live detected Windows printers (fuzzy normalized match)
+    function normalize(s) {
+      return String(s || "").toLowerCase().replace(/[^a-z0-9]/g, "");
+    }
+
+    const liveNormalized = livePrinters.map((p) => ({
+      name: p.system_name,
+      norm: normalize(p.system_name),
+      status: p.status,
+    }));
+
     const { data: dbPrinters } = await supabase.from("printers").select("id, system_name, status");
 
-    if (dbPrinters) {
+    if (dbPrinters && livePrinters.length > 0) {
       for (const dbp of dbPrinters) {
-        if (!detectedNames.has(dbp.system_name.toLowerCase()) && dbp.status !== "offline") {
+        const dbNorm = normalize(dbp.system_name);
+        const match = liveNormalized.find(
+          (lp) => lp.norm.includes(dbNorm) || dbNorm.includes(lp.norm)
+        );
+
+        if (match) {
+          if (dbp.status !== match.status) {
+            await supabase
+              .from("printers")
+              .update({ status: match.status, last_heartbeat: timestamp })
+              .eq("id", dbp.id);
+            console.log(`  -> Synced DB status for ${dbp.system_name}: ${match.status.toUpperCase()}`);
+          }
+        } else if (dbp.status !== "offline") {
           await supabase
             .from("printers")
             .update({ status: "offline", last_heartbeat: timestamp })

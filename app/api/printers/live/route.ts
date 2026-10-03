@@ -31,28 +31,49 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    // 3. Fallback or merge with database printers
+    // 3. Merge live detected printers with database printers
+    if (isSupabaseConfigured) {
+      const supabase = getAdminSupabase();
+      const { data: dbPrinters } = await supabase
+        .from("printers")
+        .select("*")
+        .eq("is_active", true);
+
+      if (dbPrinters && dbPrinters.length > 0) {
+        const liveMap = new Map(
+          livePrinters.map((p) => [p.system_name.toLowerCase(), p])
+        );
+
+        const merged = dbPrinters.map((p) => {
+          const match = liveMap.get(p.system_name.toLowerCase());
+          if (match) {
+            return { ...p, status: match.status };
+          }
+          return p;
+        });
+
+        // Add any newly detected Windows printers not yet in DB
+        const dbNames = new Set(dbPrinters.map((p) => p.system_name.toLowerCase()));
+        for (const p of livePrinters) {
+          if (!dbNames.has(p.system_name.toLowerCase())) {
+            merged.push(p);
+          }
+        }
+
+        return NextResponse.json({
+          success: true,
+          source: "merged",
+          printers: merged,
+          timestamp: new Date().toISOString(),
+        });
+      }
+    }
+
     if (livePrinters.length > 0) {
       return NextResponse.json({
         success: true,
         source: "windows-realtime",
         printers: livePrinters,
-        timestamp: new Date().toISOString(),
-      });
-    }
-
-    // If no Windows printers detected (e.g. cloud host), query Supabase
-    if (isSupabaseConfigured) {
-      const supabase = getAdminSupabase();
-      const { data } = await supabase
-        .from("printers")
-        .select("*")
-        .eq("is_active", true);
-
-      return NextResponse.json({
-        success: true,
-        source: "database",
-        printers: data || [],
         timestamp: new Date().toISOString(),
       });
     }

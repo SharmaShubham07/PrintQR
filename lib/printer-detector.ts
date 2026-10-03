@@ -25,7 +25,7 @@ export async function detectWindowsPrinters(): Promise<DetectedPrinter[]> {
 
   try {
     const psCommand = `powershell -NoProfile -Command "Get-CimInstance -ClassName Win32_Printer | Select-Object Name, DriverName, PrinterStatus, WorkOffline, Default, PortName | ConvertTo-Json -Compress"`;
-    const { stdout } = await execAsync(psCommand, { timeout: 8000 });
+    const { stdout } = await execAsync(psCommand, { timeout: 15000 });
     
     if (!stdout || !stdout.trim()) {
       return [];
@@ -34,49 +34,62 @@ export async function detectWindowsPrinters(): Promise<DetectedPrinter[]> {
     const raw = JSON.parse(stdout.trim());
     const printerList = Array.isArray(raw) ? raw : [raw];
 
-    return printerList.map((p: any, index: number) => {
-      const name = String(p.Name || `Printer-${index + 1}`).trim();
-      const driver = String(p.DriverName || "").toLowerCase();
-      const lowerName = name.toLowerCase();
-      const isOffline = Boolean(p.WorkOffline) || p.PrinterStatus === 7;
-      const isDefault = Boolean(p.Default);
-      const portName = String(p.PortName || "");
+    const IGNORED_NAMES = ["fax", "onenote", "anydesk", "xps document writer", "root print queue"];
 
-      // Capability auto-detection
-      let type: "bw" | "color" | "both" = "both";
-      if (
-        lowerName.includes("mf3010") ||
-        lowerName.includes("lbp") ||
-        lowerName.includes("laserjet") ||
-        driver.includes("mono") ||
-        driver.includes("black and white")
-      ) {
-        type = "bw";
-      } else if (
-        lowerName.includes("brother") ||
-        lowerName.includes("t220") ||
-        lowerName.includes("color") ||
-        lowerName.includes("colour") ||
-        lowerName.includes("ink") ||
-        driver.includes("color")
-      ) {
-        type = "both";
-      }
+    return printerList
+      .filter((p: any) => {
+        const lower = String(p.Name || "").toLowerCase();
+        return !IGNORED_NAMES.some((ig) => lower.includes(ig));
+      })
+      .map((p: any, index: number) => {
+        const name = String(p.Name || `Printer-${index + 1}`).trim();
+        const driver = String(p.DriverName || "").toLowerCase();
+        const lowerName = name.toLowerCase();
+        const isOffline = Boolean(p.WorkOffline) || p.PrinterStatus === 7;
+        const isDefault = Boolean(p.Default);
+        const portName = String(p.PortName || "");
 
-      const id = generateDeterministicId(name);
+        // Capability auto-detection
+        let type: "bw" | "color" | "both" = "both";
+        if (
+          lowerName.includes("mf3010") ||
+          lowerName.includes("lbp") ||
+          lowerName.includes("laserjet") ||
+          lowerName.includes("monochrome") ||
+          driver.includes("mono") ||
+          driver.includes("black and white")
+        ) {
+          type = "bw";
+        } else if (
+          lowerName.includes("brother") ||
+          lowerName.includes("t220") ||
+          lowerName.includes("t420") ||
+          lowerName.includes("t520") ||
+          lowerName.includes("color") ||
+          lowerName.includes("colour") ||
+          lowerName.includes("ink") ||
+          lowerName.includes("ecotank") ||
+          lowerName.includes("smart tank") ||
+          lowerName.includes("pixma") ||
+          driver.includes("color")
+        ) {
+          type = "both";
+        }
 
-      return {
-        id,
-        display_name: name,
-        system_name: name,
-        type,
-        status: isOffline ? "offline" : "online",
-        is_default: isDefault,
-        port_name: portName,
-        driver_name: p.DriverName || "",
-        is_active: true,
-      };
-    });
+        const id = generateDeterministicId(name);
+
+        return {
+          id,
+          display_name: name,
+          system_name: name,
+          type,
+          status: isOffline ? "offline" : "online",
+          is_default: isDefault,
+          port_name: portName,
+          driver_name: p.DriverName || "",
+          is_active: true,
+        };
+      });
   } catch (err: any) {
     console.error("Error detecting Windows printers:", err.message);
     return [];
