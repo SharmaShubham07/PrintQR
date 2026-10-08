@@ -1,6 +1,7 @@
 export type Language = "en" | "hi" | "gu";
 
 export type OrderStatus =
+  | "pending_approval"
   | "payment_pending"
   | "paid"
   | "queued"
@@ -46,6 +47,8 @@ export interface PaymentMethod {
 
 export interface ShopInfo {
   shop_name: string;
+  owner_name?: string;
+  shop_slug?: string;
   tagline: string;
   phone: string;
   email: string;
@@ -53,6 +56,7 @@ export interface ShopInfo {
   working_hours: string;
   is_closed: boolean;
   closed_notice?: string;
+  require_approval?: boolean;
 }
 
 export interface PrintRules {
@@ -68,6 +72,7 @@ export interface OrderFileItem {
   file_type: string;
   file_size: number;
   storage_path?: string;
+  download_url?: string;
   page_count: number;
   manual_page_override?: boolean;
   copies: number;
@@ -84,6 +89,8 @@ export interface OrderFileItem {
 export interface Order {
   id: string;
   order_number: string;
+  token_number?: number;
+  people_ahead?: number;
   access_token: string;
   customer_name: string;
   customer_phone: string;
@@ -92,6 +99,7 @@ export interface Order {
   total_amount: number;
   utr_number?: string | null;
   screenshot_url?: string | null;
+  screenshot_download_url?: string | null;
   rejection_reason?: string | null;
   created_at: string;
   updated_at: string;
@@ -106,3 +114,4 @@ export interface OrderStats {
   pending_payments: number;
   active_printers: number;
 }
+

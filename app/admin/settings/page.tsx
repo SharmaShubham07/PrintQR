@@ -8,15 +8,18 @@ import { supabase } from "@/lib/supabase";
 
 export default function AdminSettingsPage() {
   const [settings, setSettings] = useState({
-    shop_name: "Preeti Communication",
-    tagline: "Cyber Cafe, High Speed Printing & Xeroxing",
-    phone: "+91 90551 43328",
-    email: "preeti.communication@gmail.com",
-    address: "Shop No. 4, Market Complex, Opp. Bus Station",
-    working_hours: "08:00 AM - 09:30 PM (Mon-Sat)",
+    shop_name: "Saga3's Print Shop",
+    owner_name: "heusen",
+    shop_slug: "heusen",
+    tagline: "High Speed Cyber Cafe & Shopkeeper Direct Print Hub",
+    phone: "+91 98765 43210",
+    email: "heusen.printshop@gmail.com",
+    address: "Counter 1, Main Market Plaza",
+    working_hours: "08:00 AM - 10:00 PM (Mon-Sat)",
     is_closed: false,
     closed_notice: "Shop is currently closed for the day. Orders will resume tomorrow morning at 08:00 AM.",
-    auto_print_on_payment: true,
+    require_approval: true,
+    auto_print_on_payment: false,
     max_file_size_mb: 25,
     retention_days: 2,
   });
@@ -171,7 +174,7 @@ export default function AdminSettingsPage() {
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                    Shop Name
+                    Shop / Print Hub Name
                   </label>
                   <input
                     type="text"
@@ -179,6 +182,33 @@ export default function AdminSettingsPage() {
                     onChange={(e) => setSettings({ ...settings, shop_name: e.target.value })}
                     className="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl outline-none focus:border-indigo-500 font-semibold"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                    Shopkeeper / Owner Name
+                  </label>
+                  <input
+                    type="text"
+                    value={settings.owner_name}
+                    onChange={(e) => setSettings({ ...settings, owner_name: e.target.value })}
+                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl outline-none focus:border-indigo-500 font-semibold"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                    Unique Shop Link Slug (e.g. heusen)
+                  </label>
+                  <input
+                    type="text"
+                    value={settings.shop_slug}
+                    onChange={(e) => setSettings({ ...settings, shop_slug: e.target.value.toLowerCase().replace(/[^a-z0-9_-]/g, '') })}
+                    className="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl outline-none focus:border-indigo-500 font-mono"
+                  />
+                  <p className="text-[11px] text-indigo-600 font-medium mt-1">
+                    Customer upload link: <strong>/{settings.shop_slug || "heusen"}</strong>
+                  </p>
                 </div>
 
                 <div>

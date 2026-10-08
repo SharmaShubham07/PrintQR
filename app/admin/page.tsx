@@ -103,8 +103,11 @@ export default function AdminDashboard() {
 
       <div className="flex-1 flex flex-col min-w-0">
         <AdminHeader 
-          title="Preeti Communication Dashboard" 
+          title="Saga3's Print Shop | Shopkeeper Overview" 
           subtitle="Real-time operations, revenue metrics, and hardware printer readiness"
+          shopName="Saga3's Print Shop"
+          ownerName="heusen"
+          shopSlug="heusen"
         />
 
         <main className="p-6 space-y-6 flex-1 overflow-y-auto">
@@ -376,12 +379,22 @@ export default function AdminDashboard() {
                             {timeDisplay}
                           </td>
                           <td className="py-3 px-4 text-right">
-                            <Link
-                              href={`/admin/orders?order=${ord.order_number}`}
-                              className="font-bold text-indigo-600 hover:text-indigo-800"
-                            >
-                              Manage →
-                            </Link>
+                            {isPending ? (
+                              <Link
+                                href={`/admin/orders?order=${ord.order_number}`}
+                                className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 hover:text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200"
+                              >
+                                <Printer className="w-3 h-3" />
+                                <span>Approve &amp; Print →</span>
+                              </Link>
+                            ) : (
+                              <Link
+                                href={`/admin/orders?order=${ord.order_number}`}
+                                className="font-bold text-indigo-600 hover:text-indigo-800"
+                              >
+                                Manage →
+                              </Link>
+                            )}
                           </td>
                         </tr>
                       );

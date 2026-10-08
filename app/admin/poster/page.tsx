@@ -5,24 +5,58 @@ import QRCode from "qrcode";
 import AdminSidebar from "@/components/AdminSidebar";
 import AdminHeader from "@/components/AdminHeader";
 import { Printer, Download, Sparkles, Smartphone, UploadCloud, CheckCircle } from "lucide-react";
+import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 
 export default function AdminPosterPage() {
-  const [siteUrl, setSiteUrl] = useState("https://print-qr-rose.vercel.app");
+  const [siteUrl, setSiteUrl] = useState("https://print-qr-rose.vercel.app/heusen");
   const [qrCodeData, setQrCodeData] = useState<string>("");
+  const [shopName, setShopName] = useState("Saga3's Print Shop");
+  const [ownerName, setOwnerName] = useState("heusen");
+  const [shopSlug, setShopSlug] = useState("heusen");
 
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const origin = window.location.origin;
-      setSiteUrl(origin);
-      QRCode.toDataURL(origin, {
-        width: 400,
-        margin: 2,
-        color: {
-          dark: "#0f172a",
-          light: "#ffffff",
-        },
-      }).then(setQrCodeData);
+    async function loadShop() {
+      let slug = "heusen";
+      let name = "Saga3's Print Shop";
+      let owner = "heusen";
+
+      if (isSupabaseConfigured) {
+        try {
+          const { data } = await supabase
+            .from("settings")
+            .select("value")
+            .eq("key", "shop_info")
+            .maybeSingle();
+          if (data?.value) {
+            if (data.value.shop_name) name = data.value.shop_name;
+            if (data.value.owner_name) owner = data.value.owner_name;
+            if (data.value.shop_slug) slug = data.value.shop_slug;
+          }
+        } catch (e) {
+          console.error("Error loading poster shop info:", e);
+        }
+      }
+
+      setShopName(name);
+      setOwnerName(owner);
+      setShopSlug(slug);
+
+      if (typeof window !== "undefined") {
+        const origin = window.location.origin;
+        const target = `${origin}/${slug}`;
+        setSiteUrl(target);
+        QRCode.toDataURL(target, {
+          width: 400,
+          margin: 2,
+          color: {
+            dark: "#0f172a",
+            light: "#ffffff",
+          },
+        }).then(setQrCodeData);
+      }
     }
+
+    loadShop();
   }, []);
 
   const handleUrlChange = (newUrl: string) => {
@@ -54,6 +88,9 @@ export default function AdminPosterPage() {
           <AdminHeader
             title="Printable Shop Counter Poster"
             subtitle="Generate an attractive A4 counter poster with custom QR code for customer walk-ins"
+            shopName={shopName}
+            ownerName={ownerName}
+            shopSlug={shopSlug}
           />
         </div>
 
@@ -90,12 +127,13 @@ export default function AdminPosterPage() {
                 EXPRESS SELF-SERVICE PRINTING
               </div>
               <h1 className="text-4xl sm:text-5xl font-black tracking-tight text-slate-900">
-                Preeti Communication
+                {shopName}
               </h1>
               <p className="text-base sm:text-lg font-semibold text-slate-600">
                 Print Documents Straight from Your Mobile Phone!
               </p>
             </div>
+
 
             {/* QR Code */}
             <div className="bg-slate-50 border-4 border-slate-900 rounded-3xl p-6 inline-block shadow-inner mx-auto">

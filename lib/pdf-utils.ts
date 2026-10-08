@@ -64,3 +64,9 @@ export async function detectFilePageCount(file: File): Promise<{ pages: number; 
   // Office documents (DOCX, PPTX)
   return { pages: 1, canAutoDetect: false };
 }
+
+export async function countPdfPages(file: File): Promise<number> {
+  const result = await detectFilePageCount(file);
+  return result.pages;
+}
+

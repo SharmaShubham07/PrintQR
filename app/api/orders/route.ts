@@ -233,3 +233,66 @@ export async function POST(req: NextRequest) {
     );
   }
 }
+
+export async function GET(req: NextRequest) {
+  try {
+    if (isSupabaseConfigured) {
+      const supabase = getAdminSupabase();
+      const { data, error } = await supabase
+        .from("orders")
+        .select(`
+          *,
+          files:order_files(
+            *,
+            printer:printers(id, display_name, system_name)
+          )
+        `)
+        .order("created_at", { ascending: false });
+
+      if (error) {
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
+
+      const orders = data || [];
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+
+      // Sort chronological to assign token numbers
+      const sortedAsc = [...orders].sort(
+        (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+      );
+
+      let todayTokenCounter = 1;
+      const tokenMap = new Map<string, number>();
+      for (const ord of sortedAsc) {
+        if (new Date(ord.created_at) >= todayStart) {
+          tokenMap.set(ord.id, todayTokenCounter++);
+        } else {
+          tokenMap.set(ord.id, 1);
+        }
+      }
+
+      for (const ord of orders) {
+        ord.token_number = tokenMap.get(ord.id) || 1;
+        if (ord.files && Array.isArray(ord.files)) {
+          for (const f of ord.files) {
+            if (f.storage_path) {
+              const { data: signed } = await supabase.storage
+                .from("order-files")
+                .createSignedUrl(f.storage_path, 3600);
+              f.download_url = signed?.signedUrl;
+            }
+          }
+        }
+      }
+
+      return NextResponse.json({ success: true, orders });
+    }
+
+    const mockList = globalMemoryStore._mockOrders || [];
+    return NextResponse.json({ success: true, orders: mockList });
+  } catch (err: any) {
+    return NextResponse.json({ error: err?.message || "Failed to list orders" }, { status: 500 });
+  }
+}
+

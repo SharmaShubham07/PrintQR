@@ -56,7 +56,37 @@ export async function GET(
         data.screenshot_download_url = signed?.signedUrl;
       }
 
-      return NextResponse.json({ order: data });
+      // Calculate token_number (sequential order for today) and people_ahead
+      const todayStart = new Date();
+      todayStart.setHours(0, 0, 0, 0);
+
+      const { count: priorTodayCount } = await supabase
+        .from("orders")
+        .select("*", { count: "exact", head: true })
+        .gte("created_at", todayStart.toISOString())
+        .lte("created_at", data.created_at);
+
+      const tokenNumber = Math.max(1, priorTodayCount || 1);
+
+      const activeStatuses = ["payment_pending", "paid", "queued", "printing"];
+      let peopleAhead = 0;
+      if (activeStatuses.includes(data.status)) {
+        const { count: activeAheadCount } = await supabase
+          .from("orders")
+          .select("*", { count: "exact", head: true })
+          .in("status", activeStatuses)
+          .lt("created_at", data.created_at);
+        peopleAhead = activeAheadCount || 0;
+      }
+
+      data.token_number = tokenNumber;
+      data.people_ahead = peopleAhead;
+
+      return NextResponse.json({ 
+        order: data, 
+        token_number: tokenNumber, 
+        people_ahead: peopleAhead 
+      });
     }
 
     const mockOrder = globalMemoryStore._mockOrders?.find(
@@ -67,7 +97,22 @@ export async function GET(
       return NextResponse.json({ error: "Order not found" }, { status: 404 });
     }
 
-    return NextResponse.json({ order: mockOrder });
+    // Mock calculations
+    const allMock = globalMemoryStore._mockOrders || [];
+    const orderIdx = allMock.findIndex((o) => o.id === mockOrder.id);
+    const tokenNumber = orderIdx !== -1 ? orderIdx + 1 : 1;
+    const activeAhead = allMock.filter((o, idx) => 
+      idx < orderIdx && ["payment_pending", "paid", "queued", "printing"].includes(o.status)
+    ).length;
+
+    mockOrder.token_number = tokenNumber;
+    mockOrder.people_ahead = activeAhead;
+
+    return NextResponse.json({ 
+      order: mockOrder, 
+      token_number: tokenNumber, 
+      people_ahead: activeAhead 
+    });
   } catch (err: any) {
     return NextResponse.json({ error: err?.message || "Failed to fetch order" }, { status: 500 });
   }
@@ -80,10 +125,19 @@ export async function PATCH(
   try {
     const id = params.id;
     const body = await req.json();
-    const { status, rejection_reason, utr_number } = body;
+    const { status, rejection_reason, utr_number, file_id, file_status } = body;
 
     if (isSupabaseConfigured) {
       const supabase = getAdminSupabase();
+
+      // If updating a specific file inside this order
+      if (file_id && file_status) {
+        await supabase
+          .from("order_files")
+          .update({ status: file_status })
+          .eq("id", file_id)
+          .eq("order_id", id);
+      }
 
       const updateData: any = { updated_at: new Date().toISOString() };
       if (status) updateData.status = status;
@@ -101,6 +155,14 @@ export async function PATCH(
         return NextResponse.json({ error: error.message }, { status: 500 });
       }
 
+      // If marked as completed or printed, mark all files in this order as printed
+      if (status === "completed") {
+        await supabase
+          .from("order_files")
+          .update({ status: "printed" })
+          .eq("order_id", id);
+      }
+
       if (status) {
         await supabase.from("print_logs").insert({
           order_id: id,
@@ -115,8 +177,16 @@ export async function PATCH(
     if (globalMemoryStore._mockOrders) {
       const idx = globalMemoryStore._mockOrders.findIndex((o) => o.id === id);
       if (idx !== -1) {
+        const current = globalMemoryStore._mockOrders[idx];
+        if (file_id && file_status && current.files) {
+          const f = current.files.find((f: any) => f.id === file_id || f.file_name === file_id);
+          if (f) f.status = file_status;
+        }
+        if (status === "completed" && current.files) {
+          current.files.forEach((f: any) => { f.status = "printed"; });
+        }
         globalMemoryStore._mockOrders[idx] = {
-          ...globalMemoryStore._mockOrders[idx],
+          ...current,
           ...body,
           updated_at: new Date().toISOString(),
         };
@@ -129,3 +199,4 @@ export async function PATCH(
     return NextResponse.json({ error: err?.message || "Update failed" }, { status: 500 });
   }
 }
+

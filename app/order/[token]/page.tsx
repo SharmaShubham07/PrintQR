@@ -189,14 +189,21 @@ export default function OrderTrackingPage() {
           )}
 
           <div className="pt-2">
-            <span className="text-xs font-bold text-indigo-600 uppercase tracking-widest">
-              Live Print Token
-            </span>
-            <h1 className="text-3xl sm:text-4xl font-black text-slate-900 tracking-tight font-mono mt-1">
-              {order.order_number}
-            </h1>
-            <p className="text-xs text-slate-500 mt-1">
-              Customer: <strong>{order.customer_name}</strong> � +91 {order.customer_phone}
+            <div className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black bg-indigo-50 text-indigo-700 border border-indigo-200 mb-2">
+              <span>COUNTER WALK-IN QUEUE</span>
+            </div>
+
+            <div className="flex items-center justify-center gap-3">
+              <span className="text-4xl sm:text-5xl font-black text-indigo-600 tracking-tight">
+                #{order.token_number || 1}
+              </span>
+            </div>
+
+            <h2 className="text-lg font-bold text-slate-800 mt-1">
+              Order Ref: <span className="font-mono text-slate-900">{order.order_number}</span>
+            </h2>
+            <p className="text-xs text-slate-500 mt-0.5">
+              Customer: <strong>{order.customer_name}</strong> • +91 {order.customer_phone}
             </p>
           </div>
 
@@ -211,6 +218,43 @@ export default function OrderTrackingPage() {
             </button>
           </div>
         </div>
+
+        {/* Live Queue Position Card (BGrade style) */}
+        {!isCompleted && !isRejected && (
+          <div className={`rounded-3xl p-6 text-center border shadow-xs space-y-2 ${
+            order.status === "payment_pending"
+              ? "bg-amber-50/70 border-amber-200 text-amber-900"
+              : order.status === "printing"
+              ? "bg-indigo-50/70 border-indigo-200 text-indigo-900"
+              : (order.people_ahead === 0 || order.people_ahead === undefined)
+              ? "bg-emerald-50/70 border-emerald-200 text-emerald-900"
+              : "bg-blue-50/70 border-blue-200 text-blue-900"
+          }`}>
+            <div className="w-12 h-12 rounded-2xl flex items-center justify-center mx-auto bg-white/80 shadow-xs text-xl">
+              {order.status === "payment_pending" ? "⏳" : order.status === "printing" ? "🖨️" : (order.people_ahead === 0 ? "✨" : "👥")}
+            </div>
+
+            <h3 className="text-lg font-black tracking-tight">
+              {order.status === "payment_pending"
+                ? "Waiting for Shopkeeper Approval"
+                : order.status === "printing"
+                ? "Your Documents are Printing Now!"
+                : (order.people_ahead === 0 || order.people_ahead === undefined)
+                ? "You are Next in Line!"
+                : `${order.people_ahead} customer${order.people_ahead > 1 ? "s" : ""} ahead of you`}
+            </h3>
+
+            <p className="text-xs font-medium opacity-80 max-w-sm mx-auto">
+              {order.status === "payment_pending"
+                ? "The shopkeeper must verify and accept your files at the counter before printing."
+                : order.status === "printing"
+                ? "Collecting copies from shop printer. Please approach the counter."
+                : (order.people_ahead === 0 || order.people_ahead === undefined)
+                ? "Your files are ready at the counter. Please wait a moment."
+                : "Please wait a moment at the counter. Your token will be called shortly."}
+            </p>
+          </div>
+        )}
 
         {/* Counter Pickup Celebratory Banner */}
         {isCompleted && (
@@ -234,13 +278,14 @@ export default function OrderTrackingPage() {
               <AlertCircle className="w-6 h-6" />
             </div>
             <h3 className="text-base font-bold text-rose-800">
-              Payment Verification Failed
+              Files Declined by Shopkeeper
             </h3>
             <p className="text-xs text-rose-700">
-              {order.rejection_reason || "The transaction ID or amount could not be verified. Please visit the counter."}
+              {order.rejection_reason || "The document could not be processed. Please consult the counter operator."}
             </p>
           </div>
         )}
+
 
         {/* Status Stepper Pipeline */}
         <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-xs space-y-6">
@@ -329,17 +374,31 @@ export default function OrderTrackingPage() {
           </div>
 
           <div className="space-y-2">
-            {order.files?.map((f, i) => (
-              <div key={i} className="flex items-center justify-between text-xs py-1.5 border-b border-slate-50 last:border-0">
-                <div className="flex items-center gap-2 truncate max-w-[240px] sm:max-w-md">
-                  <FileText className="w-3.5 h-3.5 text-slate-400 shrink-0" />
-                  <span className="font-medium text-slate-700 truncate">{f.file_name}</span>
+            {order.files?.map((f, i) => {
+              const fileStatus = f.status || (order.status === "completed" ? "printed" : order.status === "printing" ? "printing" : "queued");
+              return (
+                <div key={i} className="flex flex-col sm:flex-row sm:items-center justify-between text-xs p-2.5 rounded-xl bg-slate-50 border border-slate-100 gap-2">
+                  <div className="flex items-center gap-2 truncate max-w-[240px] sm:max-w-md">
+                    <FileText className="w-4 h-4 text-slate-500 shrink-0" />
+                    <span className="font-bold text-slate-800 truncate">{f.file_name}</span>
+                  </div>
+                  <div className="flex items-center gap-2 text-slate-500 shrink-0">
+                    <span>{f.page_count}p • {f.copies}x • {f.color_mode.toUpperCase()}</span>
+                    <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
+                      fileStatus === "printed"
+                        ? "bg-emerald-100 text-emerald-800"
+                        : fileStatus === "printing"
+                        ? "bg-indigo-100 text-indigo-800 animate-pulse"
+                        : "bg-amber-100 text-amber-800"
+                    }`}>
+                      {fileStatus === "printed" && "✅ Printed"}
+                      {fileStatus === "printing" && "🖨️ Printing…"}
+                      {fileStatus === "queued" && "⏳ In Queue"}
+                    </span>
+                  </div>
                 </div>
-                <div className="text-slate-500 shrink-0">
-                  {f.page_count}p � {f.copies}x � {f.color_mode.toUpperCase()}
-                </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
           <div className="pt-2 text-xs text-slate-400 flex items-center justify-between">
