@@ -86,7 +86,7 @@ export default function RazorpayCheckoutButton({
       }
 
       // Step 3: Open Razorpay Payment Modal
-      const razorpayKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_test_Tn24EWAXcKuCDV";
+      const razorpayKey = process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_live_Tn2aA8EXZT9cMp";
 
       const options = {
         key: razorpayKey,
