@@ -3,7 +3,7 @@ import crypto from "crypto";
 
 export function getRazorpayClient(): Razorpay {
   const key_id = process.env.RAZORPAY_KEY_ID || process.env.NEXT_PUBLIC_RAZORPAY_KEY_ID || "rzp_live_Tn2aA8EXZT9cMp";
-  const key_secret = process.env.RAZORPAY_KEY_SECRET;
+  const key_secret = process.env.RAZORPAY_KEY_SECRET || "IMuUc13Hd5O7qRyTeA12m8L1";
 
   if (!key_id || !key_secret) {
     throw new Error("Razorpay credentials (RAZORPAY_KEY_ID and RAZORPAY_KEY_SECRET) are not configured in environment variables.");
@@ -24,7 +24,7 @@ export function verifyRazorpaySignature(
   paymentId: string,
   signature: string
 ): boolean {
-  const keySecret = process.env.RAZORPAY_KEY_SECRET;
+  const keySecret = process.env.RAZORPAY_KEY_SECRET || "IMuUc13Hd5O7qRyTeA12m8L1";
   if (!keySecret) {
     throw new Error("RAZORPAY_KEY_SECRET is not configured in environment variables.");
   }
