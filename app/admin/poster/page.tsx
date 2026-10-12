@@ -13,8 +13,6 @@ export default function AdminPosterPage() {
   const [shopName, setShopName] = useState("Preeti Communication");
   const [ownerName, setOwnerName] = useState("Preeti Communication");
   const [shopSlug, setShopSlug] = useState("preeti");
-  const [bwPrice, setBwPrice] = useState<number>(8);
-  const [colorPrice, setColorPrice] = useState<number>(10);
 
   const generateQR = (url: string) => {
     QRCode.toDataURL(url, {
@@ -28,7 +26,7 @@ export default function AdminPosterPage() {
   };
 
   useEffect(() => {
-    async function loadShopAndPricing() {
+    async function loadShop() {
       let slug = "preeti";
       let name = "Preeti Communication";
       let owner = "Preeti Communication";
@@ -54,18 +52,6 @@ export default function AdminPosterPage() {
       setOwnerName(owner);
       setShopSlug(slug);
 
-      // Load live pricing
-      try {
-        const res = await fetch("/api/admin/pricing");
-        const json = await res.json();
-        if (json.success && json.pricing) {
-          if (json.pricing.bw_page) setBwPrice(json.pricing.bw_page);
-          if (json.pricing.color_page) setColorPrice(json.pricing.color_page);
-        }
-      } catch (e) {
-        console.error("Error loading pricing:", e);
-      }
-
       if (typeof window !== "undefined") {
         const origin = window.location.origin;
         // Default target QR directly to the customer website portal
@@ -76,7 +62,7 @@ export default function AdminPosterPage() {
       }
     }
 
-    loadShopAndPricing();
+    loadShop();
   }, []);
 
   const handleUrlChange = (newUrl: string) => {
@@ -222,17 +208,6 @@ export default function AdminPosterPage() {
                 </div>
                 <h4 className="font-bold text-xs">Pay &amp; Collect</h4>
                 <p className="text-[11px] text-slate-500 mt-0.5">Pay via Razorpay / UPI &amp; collect prints at counter!</p>
-              </div>
-            </div>
-
-            {/* Pricing Footer on Poster */}
-            <div className="bg-indigo-900 text-white rounded-2xl p-4 flex items-center justify-around font-bold text-sm">
-              <div>
-                Black &amp; White: <span className="text-amber-300 font-black">₹{bwPrice} / page</span>
-              </div>
-              <div className="h-4 w-px bg-indigo-700"></div>
-              <div>
-                Colour: <span className="text-amber-300 font-black">₹{colorPrice} / page</span>
               </div>
             </div>
 
