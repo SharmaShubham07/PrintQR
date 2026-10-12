@@ -73,11 +73,11 @@ export default function AdminSidebar({ isAgentOnline: initialAgentOnline = true 
         <div>
           <div className="flex items-center gap-2">
             <span className="font-black text-white text-base tracking-tight truncate max-w-[150px]">
-              Saga3's Print Shop
+              Preeti Communication
             </span>
           </div>
           <p className="text-[11px] text-slate-400 font-medium">
-            Shopkeeper Print Hub
+            Cyber Cafe &amp; Print Hub
           </p>
         </div>
         <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">

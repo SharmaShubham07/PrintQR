@@ -8,12 +8,12 @@ import { supabase } from "@/lib/supabase";
 
 export default function AdminSettingsPage() {
   const [settings, setSettings] = useState({
-    shop_name: "Saga3's Print Shop",
-    owner_name: "heusen",
-    shop_slug: "heusen",
-    tagline: "High Speed Cyber Cafe & Shopkeeper Direct Print Hub",
-    phone: "+91 98765 43210",
-    email: "heusen.printshop@gmail.com",
+    shop_name: "Preeti Communication",
+    owner_name: "Preeti Communication",
+    shop_slug: "preeti",
+    tagline: "High Speed Cyber Cafe & Instant Print Hub",
+    phone: "+91 90551 43328",
+    email: "preeti.communication@gmail.com",
     address: "Counter 1, Main Market Plaza",
     working_hours: "08:00 AM - 10:00 PM (Mon-Sat)",
     is_closed: false,

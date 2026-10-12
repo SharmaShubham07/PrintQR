@@ -17,9 +17,9 @@ interface Props {
 export default function AdminHeader({ 
   title, 
   subtitle,
-  shopName = "Saga3's Print Shop",
-  ownerName = "heusen",
-  shopSlug = "heusen",
+  shopName = "Preeti Communication",
+  ownerName = "Preeti Communication",
+  shopSlug = "preeti",
   isShopClosed = false
 }: Props) {
   const [testedAudio, setTestedAudio] = useState(false);
@@ -34,8 +34,7 @@ export default function AdminHeader({
   const copyCustomerLink = () => {
     if (typeof window !== "undefined") {
       const origin = window.location.origin;
-      const url = `${origin}/${shopSlug}`;
-      navigator.clipboard.writeText(url);
+      navigator.clipboard.writeText(origin);
       setCopiedLink(true);
       setTimeout(() => setCopiedLink(false), 2200);
     }
@@ -64,10 +63,10 @@ export default function AdminHeader({
           type="button"
           onClick={copyCustomerLink}
           className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-indigo-200 bg-indigo-50/70 hover:bg-indigo-100/70 text-indigo-700 text-xs font-bold transition-all shadow-xs"
-          title={`Copy customer direct upload link (${shopSlug})`}
+          title="Copy customer website upload link"
         >
           {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-indigo-600" />}
-          <span>{copiedLink ? "Link Copied!" : `Shop Link (/${shopSlug})`}</span>
+          <span>{copiedLink ? "Link Copied!" : "Website Link"}</span>
         </button>
 
         {/* Counter Poster Quick Link */}
