@@ -9,8 +9,112 @@ export const revalidate = 0;
 const globalMemoryStore = globalThis as unknown as {
   _mockOrders?: any[];
 };
-if (!globalMemoryStore._mockOrders) {
-  globalMemoryStore._mockOrders = [];
+const DEFAULT_SAMPLE_ORDERS = [
+  {
+    id: "ord-1",
+    order_number: "PC-1048",
+    token_number: 1,
+    access_token: "tok-1",
+    customer_name: "Amit Patel",
+    customer_phone: "9825100000",
+    customer_note: "Please staple properly on top left",
+    status: "payment_pending",
+    total_amount: 48.00,
+    utr_number: "427819382104",
+    created_at: new Date(Date.now() - 3 * 60000).toISOString(),
+    updated_at: new Date().toISOString(),
+    files: [
+      {
+        id: "f-1",
+        file_name: "Aadhaar_Card_Front_Back.pdf",
+        file_type: "application/pdf",
+        file_size: 450000,
+        page_count: 2,
+        copies: 3,
+        color_mode: "bw",
+        paper_size: "A4",
+        duplex: "single",
+        page_range: "all",
+        effective_pages: 2,
+        price: 48.00,
+        status: "pending",
+        printer: {
+          id: "p-mf3010",
+          display_name: "Canon imageCLASS MF3010 (B&W Laser)",
+          system_name: "Canon MF3010"
+        }
+      },
+    ],
+  },
+  {
+    id: "ord-2",
+    order_number: "PC-1047",
+    token_number: 2,
+    access_token: "tok-2",
+    customer_name: "Sunita Verma",
+    customer_phone: "9879100000",
+    status: "queued",
+    total_amount: 30.00,
+    utr_number: "427819381900",
+    created_at: new Date(Date.now() - 15 * 60000).toISOString(),
+    updated_at: new Date().toISOString(),
+    files: [
+      {
+        id: "f-2",
+        file_name: "Project_Presentation_Charts.pptx",
+        file_type: "application/vnd.ms-powerpoint",
+        file_size: 1540000,
+        page_count: 3,
+        copies: 1,
+        color_mode: "color",
+        paper_size: "A4",
+        duplex: "single",
+        page_range: "all",
+        effective_pages: 3,
+        price: 30.00,
+        status: "queued",
+        printer: {
+          id: "p-t220",
+          display_name: "Brother DCP-T220 (Color Tank)",
+          system_name: "Brother DCP-T220"
+        }
+      },
+    ],
+  },
+  {
+    id: "ord-3",
+    order_number: "PC-1046",
+    token_number: 3,
+    access_token: "tok-3",
+    customer_name: "Rohan Gupta",
+    customer_phone: "9811122233",
+    status: "completed",
+    total_amount: 16.00,
+    utr_number: "427819381750",
+    created_at: new Date(Date.now() - 40 * 60000).toISOString(),
+    updated_at: new Date(Date.now() - 35 * 60000).toISOString(),
+    files: [
+      {
+        id: "f-3",
+        file_name: "Resume_Rohan_2026.pdf",
+        file_type: "application/pdf",
+        file_size: 210000,
+        page_count: 2,
+        copies: 1,
+        color_mode: "bw",
+        paper_size: "A4",
+        duplex: "single",
+        page_range: "all",
+        effective_pages: 2,
+        price: 16.00,
+        status: "printed",
+      },
+    ],
+  },
+];
+
+if (!globalMemoryStore._mockOrders || globalMemoryStore._mockOrders.length === 0) {
+  globalMemoryStore._mockOrders = [...DEFAULT_SAMPLE_ORDERS];
 }
 
 export async function POST(req: NextRequest) {

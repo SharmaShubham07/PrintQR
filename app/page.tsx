@@ -334,35 +334,35 @@ export default function CustomerPortal() {
 
       {/* Main Container */}
       <main className="flex-1 max-w-3xl w-full mx-auto px-4 py-6 sm:py-8 space-y-6">
-        {/* Doodly Hero Banner */}
-        <div className="text-center space-y-3 pt-1">
+        {/* Modern Hero Banner */}
+        <div className="text-center space-y-3 pt-2">
           <div className="flex flex-wrap items-center justify-center gap-2">
-            <span className="sticker-badge bg-yellow-300 text-slate-950 rotate-[-2deg]">
-              <Sparkles className="w-3.5 h-3.5 text-indigo-700 stroke-[2.5]" />
-              <span>Zero Line • No Pendrive</span>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-indigo-50 text-indigo-700 border border-indigo-200/80 shadow-xs">
+              <Sparkles className="w-3.5 h-3.5 text-indigo-600" />
+              <span>Express Print Counter</span>
             </span>
-            <span className="sticker-badge bg-pink-200 text-pink-950 rotate-[1.5deg]">
-              <span>⚡ Prints in 60 Seconds</span>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-emerald-50 text-emerald-700 border border-emerald-200/80 shadow-xs">
+              <span>⚡ Ready in 60 Seconds</span>
             </span>
-            <span className="sticker-badge bg-emerald-200 text-emerald-950 hidden sm:inline-flex rotate-[-1deg]">
-              <span>🎓 College Notes &amp; Assignments</span>
+            <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-sky-50 text-sky-700 border border-sky-200/80 hidden sm:inline-flex shadow-xs">
+              <span>📱 No Pendrive Needed</span>
             </span>
           </div>
 
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-black text-slate-900 tracking-tight leading-tight">
-            Scan. Upload. <span className="wavy-underline">Get Prints.</span>
+            Scan. Upload. <span className="gradient-text">Get Prints.</span>
           </h1>
-          <p className="text-xs sm:text-sm text-slate-600 font-bold max-w-lg mx-auto leading-relaxed">
-            Fastest express printing counter. Send files directly from your phone, choose Canon B&amp;W or Brother Color, pay via UPI, and pick up in seconds!
+          <p className="text-xs sm:text-sm text-slate-500 font-medium max-w-lg mx-auto leading-relaxed">
+            Send documents directly from your phone, choose Canon B&amp;W or Brother Color, pay online via UPI, and collect in seconds at the counter.
           </p>
         </div>
 
-        {/* Stepper Progress Bar (Doodly Neo-Card) */}
-        <div className="neo-card p-3 sm:p-4 bg-white">
-          <div className="flex items-center justify-between gap-1 sm:gap-2">
+        {/* Stepper Progress Bar (Modern Glass Stepper) */}
+        <div className="glass-card p-3 sm:p-4">
+          <div className="flex items-center justify-between gap-2 sm:gap-4">
             {[
               { num: 1, label: language === "hi" ? "1. अपलोड" : "1. Upload File" },
-              { num: 2, label: language === "hi" ? "2. सेटिंग्स" : "2. Options" },
+              { num: 2, label: language === "hi" ? "2. सेटिंग्स" : "2. Printer & Options" },
               { num: 3, label: language === "hi" ? "3. भुगतान" : "3. Pay & Print" },
             ].map((step) => {
               const isActive = currentStep === step.num;
@@ -371,19 +371,19 @@ export default function CustomerPortal() {
               return (
                 <div key={step.num} className="flex-1 flex flex-col items-center relative">
                   <div
-                    className={`w-9 h-9 sm:w-10 sm:h-10 rounded-2xl border-2 border-slate-900 flex items-center justify-center text-xs sm:text-sm font-black transition-all ${
+                    className={`w-9 h-9 sm:w-10 sm:h-10 rounded-2xl flex items-center justify-center text-xs sm:text-sm font-black transition-all ${
                       isPast
-                        ? "bg-emerald-400 text-slate-950 shadow-[2px_2px_0px_0px_#0f172a]"
+                        ? "bg-emerald-500 text-white shadow-sm"
                         : isActive
-                        ? "bg-yellow-300 text-slate-950 shadow-[3px_3px_0px_0px_#0f172a] scale-105"
+                        ? "bg-gradient-to-tr from-indigo-600 to-violet-600 text-white shadow-md shadow-indigo-600/30 scale-105"
                         : "bg-slate-100 text-slate-400"
                     }`}
                   >
                     {isPast ? "✓" : step.num}
                   </div>
                   <span
-                    className={`mt-1.5 text-[11px] sm:text-xs font-black text-center truncate max-w-[90px] sm:max-w-[120px] ${
-                      isActive ? "text-slate-900" : "text-slate-400"
+                    className={`mt-1.5 text-[11px] sm:text-xs font-bold text-center truncate max-w-[100px] sm:max-w-[140px] ${
+                      isActive ? "text-indigo-600 font-black" : "text-slate-500"
                     }`}
                   >
                     {step.label}
@@ -396,13 +396,13 @@ export default function CustomerPortal() {
 
         {/* Shop Closed Alert Banner */}
         {isShopClosed && (
-          <div className="bg-rose-100 border-2 border-slate-900 rounded-3xl p-4 sm:p-5 flex items-start gap-3.5 text-rose-950 shadow-[4px_4px_0px_0px_#0f172a] animate-in fade-in">
-            <div className="w-10 h-10 rounded-2xl bg-rose-200 border-2 border-slate-900 text-rose-900 flex items-center justify-center shrink-0 shadow-[2px_2px_0px_0px_#0f172a]">
-              <Clock className="w-5 h-5 stroke-[2.5]" />
+          <div className="bg-rose-50 border border-rose-200 rounded-3xl p-4 sm:p-5 flex items-start gap-3.5 text-rose-950 shadow-xs animate-in fade-in">
+            <div className="w-10 h-10 rounded-2xl bg-rose-100 text-rose-700 flex items-center justify-center shrink-0">
+              <Clock className="w-5 h-5 stroke-[2.2]" />
             </div>
             <div className="flex-1">
-              <h3 className="text-sm font-black uppercase tracking-wide">Counter Currently Paused</h3>
-              <p className="text-xs text-rose-800 mt-0.5 font-bold leading-relaxed">
+              <h3 className="text-sm font-bold uppercase tracking-wide">Counter Currently Paused</h3>
+              <p className="text-xs text-rose-800 mt-0.5 font-medium leading-relaxed">
                 {closedNotice || "The print shop counter is temporarily not accepting orders. Please visit the counter or try again later."}
               </p>
             </div>
@@ -411,27 +411,27 @@ export default function CustomerPortal() {
 
         {/* Error message banner */}
         {errorMsg && (
-          <div className="p-3.5 bg-rose-100 border-2 border-slate-900 text-rose-950 text-xs sm:text-sm font-bold rounded-2xl shadow-[3px_3px_0px_0px_#0f172a] flex items-center gap-2">
+          <div className="p-3.5 bg-rose-50 border border-rose-200 text-rose-900 text-xs sm:text-sm font-semibold rounded-2xl shadow-xs flex items-center gap-2">
             <span>{errorMsg}</span>
           </div>
         )}
 
         {/* STEP 1: UPLOAD PDF / FILES (DIRECT FIRST PAGE) */}
         {currentStep === 1 && (
-          <div className="neo-card p-6 sm:p-8 bg-white space-y-6 animate-in fade-in duration-200">
+          <div className="glass-card p-6 sm:p-8 space-y-6 animate-in fade-in duration-200">
             <div>
               <div className="flex items-center gap-2 mb-1">
-                <span className="sticker-badge bg-yellow-300 text-slate-950 text-[10px] rotate-[-2deg]">
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-200">
                   STEP 01
                 </span>
                 <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-                  Select Your Files
+                  Select Documents
                 </span>
               </div>
               <h2 className="text-xl sm:text-2xl font-black text-slate-900 tracking-tight">
                 {t.upload_title}
               </h2>
-              <p className="text-xs sm:text-sm text-slate-600 font-bold mt-0.5">
+              <p className="text-xs sm:text-sm text-slate-500 font-medium mt-0.5">
                 {t.upload_sub}
               </p>
             </div>
@@ -445,17 +445,17 @@ export default function CustomerPortal() {
             />
 
             {/* Optional Instructions Drawer */}
-            <details className="group bg-slate-50 border-2 border-slate-900 rounded-2xl p-4 transition-all text-xs shadow-[2px_2px_0px_0px_#0f172a]">
-              <summary className="cursor-pointer font-black text-slate-800 hover:text-slate-950 list-none flex items-center justify-between select-none">
+            <details className="group bg-slate-50/70 border border-slate-200/80 rounded-2xl p-4 transition-all text-xs">
+              <summary className="cursor-pointer font-bold text-slate-700 hover:text-slate-950 list-none flex items-center justify-between select-none">
                 <span className="flex items-center gap-2">
-                  <Sliders className="w-4 h-4 text-indigo-600 stroke-[2.5]" />
+                  <Sliders className="w-4 h-4 text-indigo-600 stroke-[2.2]" />
                   <span>Optional: Special instructions or mobile number</span>
                 </span>
-                <span className="text-slate-900 font-black text-sm font-mono group-open:rotate-45 transition-transform">+</span>
+                <span className="text-slate-500 font-bold text-sm font-mono group-open:rotate-45 transition-transform">+</span>
               </summary>
-              <div className="mt-3 pt-3 border-t-2 border-slate-900/10 space-y-3">
+              <div className="mt-3 pt-3 border-t border-slate-200/80 space-y-3">
                 <div>
-                  <label className="block text-[11px] font-black text-slate-700 uppercase mb-1">
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
                     Mobile Number (Optional)
                   </label>
                   <input
@@ -464,11 +464,11 @@ export default function CustomerPortal() {
                     value={customerPhone === "Walk-in" ? "" : customerPhone}
                     onChange={(e) => setCustomerPhone(e.target.value.replace(/\D/g, "") || "Walk-in")}
                     placeholder="Enter 10-digit number for SMS receipt"
-                    className="w-full px-3.5 py-2.5 text-xs font-bold font-mono border-2 border-slate-900 rounded-xl outline-none focus:bg-yellow-50"
+                    className="w-full px-3.5 py-2.5 text-xs font-medium font-mono border border-slate-200 rounded-xl outline-none focus:border-indigo-500 bg-white"
                   />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-black text-slate-700 uppercase mb-1">
+                  <label className="block text-[11px] font-bold text-slate-700 uppercase mb-1">
                     Special Instructions (Optional)
                   </label>
                   <textarea
@@ -476,7 +476,7 @@ export default function CustomerPortal() {
                     value={customerNote}
                     onChange={(e) => setCustomerNote(e.target.value)}
                     placeholder="e.g. Please staple top left corner, print on thick paper..."
-                    className="w-full px-3.5 py-2.5 text-xs font-bold border-2 border-slate-900 rounded-xl outline-none focus:bg-yellow-50 resize-none"
+                    className="w-full px-3.5 py-2.5 text-xs font-medium border border-slate-200 rounded-xl outline-none focus:border-indigo-500 bg-white resize-none"
                   />
                 </div>
               </div>
@@ -490,7 +490,7 @@ export default function CustomerPortal() {
                 className="w-full py-4 px-6 neo-btn-primary text-base sm:text-lg cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
               >
                 <span>{isShopClosed ? "Counter Orders Paused" : (language === "hi" ? "प्रिंटर और सेटिंग्स चुनें" : "Choose Printer & Options")}</span>
-                <ArrowRight className="w-5 h-5 stroke-[3]" />
+                <ArrowRight className="w-5 h-5 stroke-[2.5]" />
               </button>
             </div>
           </div>
@@ -507,10 +507,10 @@ export default function CustomerPortal() {
                     key={i}
                     type="button"
                     onClick={() => setActiveFileIndex(i)}
-                    className={`px-4 py-2 rounded-2xl text-xs font-black whitespace-nowrap border-2 border-slate-900 transition-all ${
+                    className={`px-4 py-2 rounded-xl text-xs font-bold whitespace-nowrap transition-all cursor-pointer ${
                       activeFileIndex === i
-                        ? "bg-yellow-300 text-slate-950 shadow-[3px_3px_0px_0px_#0f172a] -translate-y-0.5"
-                        : "bg-white text-slate-700 hover:bg-slate-50 shadow-[1px_1px_0px_0px_#0f172a]"
+                        ? "bg-indigo-600 text-white shadow-sm"
+                        : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-50"
                     }`}
                   >
                     File {i + 1}: {f.file_name.substring(0, 16)}...
@@ -519,29 +519,29 @@ export default function CustomerPortal() {
               </div>
             )}
 
-            {/* Selected File Settings Card (Neo-Card) */}
+            {/* Selected File Settings Card (Glass-Card) */}
             {(() => {
               const currentFile = files[activeFileIndex] || files[0];
               const fileCost = calculateFileCost(currentFile, pricing);
 
               return (
-                <div className="neo-card p-6 sm:p-8 bg-white space-y-6">
-                  <div className="flex items-center justify-between border-b-2 border-slate-900/10 pb-4">
+                <div className="glass-card p-6 sm:p-8 space-y-6">
+                  <div className="flex items-center justify-between border-b border-slate-100 pb-4">
                     <div>
-                      <span className="sticker-badge bg-indigo-100 text-indigo-950 text-[10px] mb-1">
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-indigo-50 text-indigo-700 mb-1">
                         {t.file_options_header} {activeFileIndex + 1} of {files.length}
                       </span>
-                      <h3 className="text-base sm:text-lg font-black text-slate-900 truncate max-w-sm sm:max-w-md mt-1">
+                      <h3 className="text-base sm:text-lg font-bold text-slate-900 truncate max-w-sm sm:max-w-md mt-1">
                         {currentFile.file_name}
                       </h3>
-                      <p className="text-xs font-bold text-slate-500">
+                      <p className="text-xs font-medium text-slate-500">
                         📄 {currentFile.page_count} pages detected
                       </p>
                     </div>
 
                     <div className="text-right">
-                      <span className="text-[10px] font-black uppercase text-slate-400 block tracking-wider">{t.estimated_cost}</span>
-                      <span className="text-2xl font-black text-slate-900">
+                      <span className="text-[10px] font-bold uppercase text-slate-400 block tracking-wider">{t.estimated_cost}</span>
+                      <span className="text-2xl font-black text-indigo-600">
                         ₹{fileCost.toFixed(2)}
                       </span>
                     </div>
@@ -550,49 +550,49 @@ export default function CustomerPortal() {
                   <div className="space-y-6">
                     {/* Color Mode Selection */}
                     <div>
-                      <label className="block text-xs font-black text-slate-800 uppercase tracking-wider mb-2 flex items-center gap-1.5">
-                        <span>🎨 {t.color_mode}</span>
-                        <span className="text-[10px] font-bold text-slate-400 normal-case">(Auto-selects printer)</span>
+                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2 flex items-center gap-1.5">
+                        <span>{t.color_mode}</span>
+                        <span className="text-[10px] font-normal text-slate-400 normal-case">(Auto-selects printer)</span>
                       </label>
                       <div className="grid grid-cols-2 gap-3">
                         <button
                           type="button"
                           onClick={() => updateFileOption(activeFileIndex, { color_mode: "bw" })}
-                          className={`p-3.5 sm:p-4 rounded-2xl border-2 border-slate-900 text-left transition-all ${
+                          className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
                             currentFile.color_mode === "bw"
-                              ? "bg-amber-100/90 text-slate-950 shadow-[3px_3px_0px_0px_#0f172a] -translate-y-0.5 ring-2 ring-amber-400"
-                              : "bg-white text-slate-600 hover:bg-slate-50 shadow-[1px_1px_0px_0px_#0f172a]"
+                              ? "border-indigo-600 bg-indigo-50/50 ring-2 ring-indigo-500/20 text-slate-900 font-bold shadow-xs"
+                              : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
                           }`}
                         >
-                          <div className="text-sm font-black flex items-center gap-1.5">
+                          <div className="text-sm font-bold flex items-center justify-between">
                             <span>⚫ {t.bw_label}</span>
-                            <span className="sticker-badge bg-yellow-300 text-slate-950 text-[10px]">₹{pricing.bw_page}/pg</span>
+                            <span className="text-xs text-indigo-600 font-black">₹{pricing.bw_page}/pg</span>
                           </div>
-                          <div className="text-[11px] font-bold text-slate-500 mt-1">Assignments, text &amp; notes</div>
+                          <div className="text-xs text-slate-500 mt-1 font-normal">Assignments, text &amp; notes</div>
                         </button>
 
                         <button
                           type="button"
                           onClick={() => updateFileOption(activeFileIndex, { color_mode: "color" })}
-                          className={`p-3.5 sm:p-4 rounded-2xl border-2 border-slate-900 text-left transition-all ${
+                          className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
                             currentFile.color_mode === "color"
-                              ? "bg-pink-100 text-slate-950 shadow-[3px_3px_0px_0px_#0f172a] -translate-y-0.5 ring-2 ring-pink-400"
-                              : "bg-white text-slate-600 hover:bg-slate-50 shadow-[1px_1px_0px_0px_#0f172a]"
+                              ? "border-pink-600 bg-pink-50/50 ring-2 ring-pink-500/20 text-slate-900 font-bold shadow-xs"
+                              : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
                           }`}
                         >
-                          <div className="text-sm font-black flex items-center gap-1.5">
+                          <div className="text-sm font-bold flex items-center justify-between">
                             <span>🌈 {t.color_label}</span>
-                            <span className="sticker-badge bg-pink-300 text-slate-950 text-[10px]">₹{pricing.color_page}/pg</span>
+                            <span className="text-xs text-pink-600 font-black">₹{pricing.color_page}/pg</span>
                           </div>
-                          <div className="text-[11px] font-bold text-slate-500 mt-1">Diagrams, charts &amp; photos</div>
+                          <div className="text-xs text-slate-500 mt-1 font-normal">Diagrams, charts &amp; photos</div>
                         </button>
                       </div>
                     </div>
 
                     {/* Printer Selection with Rules */}
                     <div>
-                      <label className="block text-xs font-black text-slate-800 uppercase tracking-wider mb-2">
-                        🖨️ {t.printer_label}
+                      <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-2">
+                        {t.printer_label}
                       </label>
                       <PrinterSelector
                         selectedPrinterId={currentFile.printer_id}
@@ -606,9 +606,9 @@ export default function CustomerPortal() {
 
                     {/* Copies & Page Range */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="bg-slate-50 border-2 border-slate-900 rounded-2xl p-3.5 shadow-[2px_2px_0px_0px_#0f172a]">
-                        <label className="block text-[11px] font-black text-slate-800 uppercase tracking-wider mb-2">
-                          🔢 {t.copies_label}
+                      <div className="bg-slate-50/80 border border-slate-200/80 rounded-2xl p-3.5">
+                        <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-2">
+                          {t.copies_label}
                         </label>
                         <div className="flex items-center">
                           <button
@@ -618,7 +618,7 @@ export default function CustomerPortal() {
                                 copies: Math.max(1, currentFile.copies - 1),
                               })
                             }
-                            className="w-10 h-10 border-2 border-slate-900 rounded-xl bg-white hover:bg-yellow-200 flex items-center justify-center font-black text-slate-900 text-lg shadow-[2px_2px_0px_0px_#0f172a] active:translate-x-0.5 active:translate-y-0.5 cursor-pointer"
+                            className="w-10 h-10 border border-slate-200 rounded-xl bg-white hover:bg-slate-100 flex items-center justify-center font-bold text-slate-700 cursor-pointer"
                           >
                             -
                           </button>
@@ -632,7 +632,7 @@ export default function CustomerPortal() {
                                 copies: Math.max(1, parseInt(e.target.value, 10) || 1),
                               })
                             }
-                            className="w-16 h-10 text-center font-black text-slate-900 text-base outline-none bg-transparent"
+                            className="w-16 h-10 text-center font-bold text-slate-900 text-base outline-none bg-transparent"
                           />
                           <button
                             type="button"
@@ -641,16 +641,16 @@ export default function CustomerPortal() {
                                 copies: currentFile.copies + 1,
                               })
                             }
-                            className="w-10 h-10 border-2 border-slate-900 rounded-xl bg-white hover:bg-yellow-200 flex items-center justify-center font-black text-slate-900 text-lg shadow-[2px_2px_0px_0px_#0f172a] active:translate-x-0.5 active:translate-y-0.5 cursor-pointer"
+                            className="w-10 h-10 border border-slate-200 rounded-xl bg-white hover:bg-slate-100 flex items-center justify-center font-bold text-slate-700 cursor-pointer"
                           >
                             +
                           </button>
                         </div>
                       </div>
 
-                      <div className="bg-slate-50 border-2 border-slate-900 rounded-2xl p-3.5 shadow-[2px_2px_0px_0px_#0f172a]">
-                        <label className="block text-[11px] font-black text-slate-800 uppercase tracking-wider mb-2">
-                          📑 {t.page_range_label}
+                      <div className="bg-slate-50/80 border border-slate-200/80 rounded-2xl p-3.5">
+                        <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-2">
+                          {t.page_range_label}
                         </label>
                         <input
                           type="text"
@@ -661,9 +661,9 @@ export default function CustomerPortal() {
                               page_range: e.target.value.trim() ? e.target.value : "all",
                             })
                           }
-                          className="w-full px-3 py-2 text-xs font-bold font-mono border-2 border-slate-900 rounded-xl bg-white focus:bg-yellow-50 outline-none"
+                          className="w-full px-3 py-2 text-xs font-mono font-bold border border-slate-200 rounded-xl bg-white focus:border-indigo-500 outline-none"
                         />
-                        <p className="text-[10px] font-bold text-slate-500 mt-1.5">
+                        <p className="text-[10px] text-slate-400 mt-1.5">
                           Printing <strong>{currentFile.effective_pages}</strong> of {currentFile.page_count} pages
                         </p>
                       </div>
@@ -671,9 +671,9 @@ export default function CustomerPortal() {
 
                     {/* Paper Size & Sides */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                      <div className="bg-slate-50 border-2 border-slate-900 rounded-2xl p-3.5 shadow-[2px_2px_0px_0px_#0f172a]">
-                        <label className="block text-[11px] font-black text-slate-800 uppercase tracking-wider mb-2">
-                          📐 {t.paper_size_label}
+                      <div className="bg-slate-50/80 border border-slate-200/80 rounded-2xl p-3.5">
+                        <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-2">
+                          {t.paper_size_label}
                         </label>
                         <select
                           value={currentFile.paper_size}
@@ -682,7 +682,7 @@ export default function CustomerPortal() {
                               paper_size: e.target.value as PaperSize,
                             })
                           }
-                          className="w-full px-3 py-2 text-xs font-bold border-2 border-slate-900 rounded-xl bg-white focus:bg-yellow-50 outline-none"
+                          className="w-full px-3 py-2 text-xs font-semibold border border-slate-200 rounded-xl bg-white focus:border-indigo-500 outline-none"
                         >
                           <option value="A4">A4 (Standard 210 x 297 mm)</option>
                           <option value="Legal">Legal (216 x 356 mm)</option>
@@ -690,18 +690,18 @@ export default function CustomerPortal() {
                         </select>
                       </div>
 
-                      <div className="bg-slate-50 border-2 border-slate-900 rounded-2xl p-3.5 shadow-[2px_2px_0px_0px_#0f172a]">
-                        <label className="block text-[11px] font-black text-slate-800 uppercase tracking-wider mb-2">
-                          🔄 {t.duplex_label}
+                      <div className="bg-slate-50/80 border border-slate-200/80 rounded-2xl p-3.5">
+                        <label className="block text-[11px] font-bold text-slate-700 uppercase tracking-wider mb-2">
+                          {t.duplex_label}
                         </label>
                         <div className="grid grid-cols-2 gap-2">
                           <button
                             type="button"
                             onClick={() => updateFileOption(activeFileIndex, { duplex: "single" })}
-                            className={`py-2 px-3 text-xs rounded-xl border-2 border-slate-900 font-black transition-all ${
+                            className={`py-2 px-3 text-xs rounded-xl font-bold transition-all cursor-pointer ${
                               currentFile.duplex === "single"
-                                ? "bg-yellow-300 text-slate-950 shadow-[2px_2px_0px_0px_#0f172a]"
-                                : "bg-white text-slate-600 hover:bg-slate-100"
+                                ? "bg-indigo-600 text-white shadow-xs"
+                                : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-100"
                             }`}
                           >
                             {t.single_sided}
@@ -709,10 +709,10 @@ export default function CustomerPortal() {
                           <button
                             type="button"
                             onClick={() => updateFileOption(activeFileIndex, { duplex: "double" })}
-                            className={`py-2 px-3 text-xs rounded-xl border-2 border-slate-900 font-black transition-all ${
+                            className={`py-2 px-3 text-xs rounded-xl font-bold transition-all cursor-pointer ${
                               currentFile.duplex === "double"
-                                ? "bg-yellow-300 text-slate-950 shadow-[2px_2px_0px_0px_#0f172a]"
-                                : "bg-white text-slate-600 hover:bg-slate-100"
+                                ? "bg-indigo-600 text-white shadow-xs"
+                                : "bg-white border border-slate-200 text-slate-600 hover:bg-slate-100"
                             }`}
                           >
                             {t.double_sided}
@@ -722,22 +722,22 @@ export default function CustomerPortal() {
                     </div>
                   </div>
 
-                  {/* Estimated Total Bar (Neo-Card) */}
-                  <div className="bg-amber-50 border-2 border-slate-900 rounded-2xl p-4 flex items-center justify-between shadow-[3px_3px_0px_0px_#0f172a]">
+                  {/* Estimated Total Bar */}
+                  <div className="bg-gradient-to-r from-slate-900 via-indigo-950 to-slate-900 text-white rounded-2xl p-4 sm:p-5 flex items-center justify-between shadow-md">
                     <div>
                       <div className="flex items-center gap-1.5">
-                        <span className="sticker-badge bg-yellow-300 text-slate-950 text-[10px]">
+                        <span className="px-2 py-0.5 rounded-md text-[10px] font-black uppercase bg-emerald-500 text-slate-950">
                           TOTAL
                         </span>
-                        <span className="text-xs font-black text-slate-900">
+                        <span className="text-xs font-bold text-slate-200">
                           {files.length} document{files.length > 1 ? "s" : ""}
                         </span>
                       </div>
-                      <div className="text-[11px] font-bold text-slate-600 mt-1">
+                      <div className="text-[11px] text-slate-400 mt-1">
                         ⚡ {files.reduce((acc, f) => acc + (f.effective_pages * f.copies), 0)} total pages ready to print
                       </div>
                     </div>
-                    <div className="text-3xl font-black text-slate-900">
+                    <div className="text-3xl font-black text-white">
                       ₹{total.toFixed(2)}
                     </div>
                   </div>
@@ -746,9 +746,9 @@ export default function CustomerPortal() {
                     <button
                       type="button"
                       onClick={handlePrevStep}
-                      className="px-5 py-3.5 border-2 border-slate-900 rounded-2xl bg-white hover:bg-slate-100 font-black text-slate-900 shadow-[3px_3px_0px_0px_#0f172a] active:translate-x-0.5 active:translate-y-0.5 transition-all flex items-center justify-center gap-2 text-sm cursor-pointer"
+                      className="px-5 py-3.5 border border-slate-200 rounded-2xl bg-white hover:bg-slate-50 font-bold text-slate-700 shadow-xs transition-all flex items-center justify-center gap-2 text-sm cursor-pointer"
                     >
-                      <ArrowLeft className="w-4 h-4 stroke-[3]" />
+                      <ArrowLeft className="w-4 h-4" />
                       <span>Back to Files</span>
                     </button>
                     <button
@@ -757,7 +757,7 @@ export default function CustomerPortal() {
                       className="flex-1 py-4 px-6 neo-btn-primary text-base sm:text-lg cursor-pointer"
                     >
                       <span>Proceed to Payment (₹{total.toFixed(2)})</span>
-                      <ArrowRight className="w-5 h-5 stroke-[3]" />
+                      <ArrowRight className="w-5 h-5 stroke-[2.5]" />
                     </button>
                   </div>
                 </div>
@@ -769,24 +769,24 @@ export default function CustomerPortal() {
         {/* STEP 3: PAY & INSTANT PRINT */}
         {currentStep === 3 && (
           <div className="space-y-6 animate-in fade-in duration-200">
-            {/* Order Quick Details (Neo-Card) */}
-            <div className="neo-card p-4 sm:p-5 bg-white flex items-center justify-between">
+            {/* Order Quick Details */}
+            <div className="glass-card p-4 sm:p-5 flex items-center justify-between">
               <div className="min-w-0 pr-3">
                 <div className="flex items-center gap-1.5 mb-1">
-                  <span className="sticker-badge bg-emerald-300 text-slate-950 text-[10px]">
+                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider bg-emerald-50 text-emerald-700 border border-emerald-200">
                     READY TO PRINT
                   </span>
-                  <span className="text-xs font-black text-slate-900">
+                  <span className="text-xs font-bold text-slate-900">
                     {files.length} document{files.length > 1 ? "s" : ""}
                   </span>
                 </div>
-                <span className="text-xs font-bold text-slate-600 truncate block">
+                <span className="text-xs text-slate-500 truncate block">
                   {files.map((f) => f.file_name).join(", ")}
                 </span>
               </div>
               <div className="text-right shrink-0">
-                <span className="text-[10px] font-black uppercase text-slate-400 block tracking-wider">Final Price</span>
-                <span className="text-2xl sm:text-3xl font-black text-slate-900">
+                <span className="text-[10px] font-bold uppercase text-slate-400 block tracking-wider">Final Price</span>
+                <span className="text-2xl sm:text-3xl font-black text-indigo-600">
                   ₹{total.toFixed(2)}
                 </span>
               </div>
@@ -808,24 +808,22 @@ export default function CustomerPortal() {
                 type="button"
                 onClick={handlePrevStep}
                 disabled={isSubmitting}
-                className="inline-flex items-center gap-2 px-4 py-2 border-2 border-slate-900 rounded-xl bg-white text-xs font-black text-slate-800 shadow-[2px_2px_0px_0px_#0f172a] hover:bg-yellow-200 transition-all cursor-pointer"
+                className="inline-flex items-center gap-2 px-4 py-2 border border-slate-200 rounded-xl bg-white text-xs font-semibold text-slate-600 hover:text-slate-900 hover:bg-slate-50 shadow-xs transition-all cursor-pointer"
               >
-                <ArrowLeft className="w-3.5 h-3.5 stroke-[2.5]" />
+                <ArrowLeft className="w-3.5 h-3.5 stroke-[2.2]" />
                 <span>Change Printer &amp; Options</span>
               </button>
             </div>
           </div>
         )}
 
-        {/* Track Existing Order Footer Section (Doodly Ticket Stub) */}
-        <div className="mt-10 pt-6 border-t-2 border-slate-900/10 text-center">
-          <div className="neo-card-sm p-4 bg-white/90 max-w-md mx-auto space-y-3">
-            <div className="flex items-center justify-center gap-2">
-              <span className="sticker-badge bg-sky-200 text-sky-950 text-[11px] rotate-[-1deg]">
-                🎟️ Already Placed an Order?
-              </span>
-            </div>
-            <p className="text-xs font-bold text-slate-600">
+        {/* Track Existing Order Footer Section */}
+        <div className="mt-10 pt-6 border-t border-slate-200/80 text-center">
+          <div className="glass-card p-5 max-w-md mx-auto space-y-3">
+            <span className="inline-flex items-center gap-1 px-3 py-1 rounded-full text-xs font-bold bg-slate-100 text-slate-700">
+              🎟️ Already Placed an Order?
+            </span>
+            <p className="text-xs font-medium text-slate-500">
               Enter your token number or order ID to view live printing status
             </p>
             <div className="flex items-center gap-2">
@@ -834,7 +832,7 @@ export default function CustomerPortal() {
                 value={trackTokenInput}
                 onChange={(e) => setTrackTokenInput(e.target.value)}
                 placeholder="Order # (e.g. PC-1001 or Token #1)"
-                className="flex-1 px-3.5 py-2.5 text-xs font-black font-mono border-2 border-slate-900 rounded-xl outline-none focus:bg-yellow-50 uppercase placeholder:normal-case placeholder:font-normal"
+                className="flex-1 px-3.5 py-2.5 text-xs font-mono font-bold border border-slate-200 rounded-xl outline-none focus:border-indigo-500 uppercase placeholder:normal-case placeholder:font-normal bg-white"
               />
               <button
                 type="button"
@@ -843,9 +841,9 @@ export default function CustomerPortal() {
                     router.push(`/order/${trackTokenInput.trim()}`);
                   }
                 }}
-                className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-yellow-300 text-xs font-black rounded-xl border-2 border-slate-900 shadow-[2px_2px_0px_0px_#0f172a] active:translate-x-0.5 active:translate-y-0.5 transition-all shrink-0 cursor-pointer"
+                className="px-4 py-2.5 bg-slate-900 hover:bg-slate-800 text-white text-xs font-bold rounded-xl transition-all shrink-0 cursor-pointer"
               >
-                Track Now 🚀
+                Track Now
               </button>
             </div>
           </div>

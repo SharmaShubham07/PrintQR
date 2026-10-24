@@ -147,7 +147,7 @@ export default function FileUploader({ files, onChange, language, maxSizeMb = 25
         onChange={handleFileSelect}
       />
 
-      {/* Doodly Drag & Drop Area */}
+      {/* Modern Drag & Drop Area */}
       <div
         onDragOver={(e) => {
           e.preventDefault();
@@ -156,41 +156,41 @@ export default function FileUploader({ files, onChange, language, maxSizeMb = 25
         onDragLeave={() => setIsDragging(false)}
         onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
-        className={`relative border-2 border-dashed rounded-3xl p-7 sm:p-9 text-center cursor-pointer transition-all duration-200 group ${
+        className={`relative border-2 border-dashed rounded-3xl p-8 sm:p-10 text-center cursor-pointer transition-all duration-200 group ${
           isDragging
-            ? "border-slate-900 bg-yellow-200/90 scale-[0.99] shadow-[4px_4px_0px_0px_#0f172a]"
-            : "border-slate-900 bg-amber-50/80 hover:bg-yellow-50 hover:shadow-[4px_4px_0px_0px_#0f172a]"
+            ? "border-indigo-500 bg-indigo-50/60 scale-[0.99] shadow-md"
+            : "border-slate-300 hover:border-indigo-400 bg-slate-50/60 hover:bg-indigo-50/30 hover:shadow-sm"
         }`}
       >
-        <div className="w-16 h-16 mx-auto rounded-3xl bg-yellow-300 border-2 border-slate-900 flex items-center justify-center text-slate-950 mb-3 shadow-[3px_3px_0px_0px_#0f172a] group-hover:rotate-6 group-hover:scale-105 transition-all">
-          <UploadCloud className="w-8 h-8 stroke-[2.5]" />
+        <div className="w-16 h-16 mx-auto rounded-2xl bg-gradient-to-tr from-indigo-500/10 to-violet-500/10 text-indigo-600 border border-indigo-200/80 flex items-center justify-center mb-3.5 group-hover:scale-105 transition-all shadow-xs">
+          <UploadCloud className="w-8 h-8 stroke-[2.2]" />
         </div>
-        <h4 className="font-black text-slate-900 text-lg sm:text-xl mb-1 tracking-tight">
-          Drop your files here, or <span className="underline decoration-indigo-500 decoration-wavy">tap to browse</span>
+        <h4 className="font-extrabold text-slate-900 text-lg sm:text-xl mb-1 tracking-tight">
+          Drop your files here, or <span className="text-indigo-600 underline underline-offset-4 decoration-indigo-400">tap to browse</span>
         </h4>
-        <p className="text-xs sm:text-sm text-slate-600 font-bold mb-3">
+        <p className="text-xs sm:text-sm text-slate-500 font-medium mb-3.5 max-w-md mx-auto">
           College notes, assignments, reports, presentation slides or photos
         </p>
         
-        {/* Playful Format Chips */}
-        <div className="flex flex-wrap items-center justify-center gap-1.5 pt-1">
-          <span className="sticker-badge bg-rose-200 text-rose-950 text-[10px]">📄 PDF</span>
-          <span className="sticker-badge bg-sky-200 text-sky-950 text-[10px]">📸 JPG / PNG</span>
-          <span className="sticker-badge bg-emerald-200 text-emerald-950 text-[10px]">📝 DOCX / PPTX</span>
-          <span className="sticker-badge bg-purple-200 text-purple-950 text-[10px]">📦 Up to 25MB</span>
+        {/* Modern Format Chips */}
+        <div className="flex flex-wrap items-center justify-center gap-2 pt-1">
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-white border border-slate-200/90 text-slate-700 shadow-xs">📄 PDF</span>
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-white border border-slate-200/90 text-slate-700 shadow-xs">📸 JPG / PNG</span>
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-white border border-slate-200/90 text-slate-700 shadow-xs">📝 DOCX / PPTX</span>
+          <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold bg-indigo-50 border border-indigo-200 text-indigo-700 shadow-xs">📦 Up to 25MB</span>
         </div>
       </div>
 
       {errorNotice && (
-        <div className="flex items-center gap-2 p-3.5 text-xs sm:text-sm font-bold text-rose-950 bg-rose-100 border-2 border-slate-900 rounded-2xl shadow-[3px_3px_0px_0px_#0f172a]">
-          <AlertCircle className="w-4 h-4 shrink-0 text-rose-700 stroke-[2.5]" />
+        <div className="flex items-center gap-2.5 p-4 text-xs sm:text-sm font-semibold text-rose-800 bg-rose-50 border border-rose-200 rounded-2xl shadow-xs">
+          <AlertCircle className="w-4 h-4 shrink-0 text-rose-600 stroke-[2.5]" />
           <span>{errorNotice}</span>
         </div>
       )}
 
       {isProcessing && (
-        <div className="flex items-center justify-center gap-2 p-4 text-sm font-black text-indigo-950 bg-indigo-100 border-2 border-slate-900 rounded-2xl shadow-[3px_3px_0px_0px_#0f172a] animate-pulse">
-          <span>✨ Scanning document &amp; counting pages...</span>
+        <div className="flex items-center justify-center gap-2 p-4 text-sm font-bold text-indigo-900 bg-indigo-50 border border-indigo-200 rounded-2xl shadow-xs animate-pulse">
+          <span>✨ Scanning document &amp; detecting pages...</span>
         </div>
       )}
 
@@ -198,15 +198,15 @@ export default function FileUploader({ files, onChange, language, maxSizeMb = 25
       {files.length > 0 && (
         <div className="space-y-3 pt-2">
           <div className="flex items-center justify-between px-1">
-            <span className="text-xs font-black text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
-              <span>📚 Ready to Print ({files.length})</span>
+            <span className="text-xs font-bold text-slate-600 uppercase tracking-wider flex items-center gap-1.5">
+              <span>Ready to Print ({files.length})</span>
             </span>
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="sticker-badge bg-yellow-300 hover:bg-yellow-400 text-slate-950 text-[11px] cursor-pointer"
+              className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold bg-indigo-50 hover:bg-indigo-100 text-indigo-700 border border-indigo-200 transition-colors cursor-pointer"
             >
-              <Plus className="w-3.5 h-3.5 stroke-[3]" />
+              <Plus className="w-3.5 h-3.5 stroke-[2.5]" />
               <span>Add More Files</span>
             </button>
           </div>
@@ -221,9 +221,9 @@ export default function FileUploader({ files, onChange, language, maxSizeMb = 25
               return (
                 <div
                   key={idx}
-                  className="bg-white border-2 border-slate-900 rounded-2xl p-3.5 sm:p-4 flex items-center justify-between gap-3 shadow-[3px_3px_0px_0px_#0f172a] hover:translate-x-0.5 hover:-translate-y-0.5 transition-all"
+                  className="bg-white border border-slate-200/90 rounded-2xl p-4 flex items-center justify-between gap-3 shadow-xs hover:border-indigo-300 hover:shadow-md transition-all"
                 >
-                  <div className="flex items-center gap-3 min-w-0">
+                  <div className="flex items-center gap-3.5 min-w-0">
                     <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center shrink-0 text-slate-600">
                       {isPdf ? (
                         <FileText className="w-5 h-5 text-rose-500" />
@@ -234,17 +234,17 @@ export default function FileUploader({ files, onChange, language, maxSizeMb = 25
                       )}
                     </div>
                     <div className="min-w-0">
-                      <p className="font-semibold text-slate-800 text-sm truncate">
+                      <p className="font-bold text-slate-800 text-sm truncate">
                         {file.file_name}
                       </p>
                       <div className="flex items-center gap-2 text-xs text-slate-500 mt-0.5">
                         <span>{formatFileSize(file.file_size)}</span>
                         <span>•</span>
-                        <span className="font-medium text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md">
+                        <span className="font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded-md">
                           {file.page_count} {file.page_count === 1 ? "page" : "pages"}
                         </span>
                         {file.manual_page_override && (
-                          <span className="text-[10px] font-medium text-amber-600 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                          <span className="text-[10px] font-semibold text-amber-700 bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
                             Customized
                           </span>
                         )}
@@ -256,7 +256,7 @@ export default function FileUploader({ files, onChange, language, maxSizeMb = 25
                     <button
                       type="button"
                       onClick={() => openEditPages(idx)}
-                      className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-colors"
+                      className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-xl transition-colors cursor-pointer"
                       title={t.override_pages}
                     >
                       <Edit3 className="w-4 h-4" />
@@ -264,7 +264,7 @@ export default function FileUploader({ files, onChange, language, maxSizeMb = 25
                     <button
                       type="button"
                       onClick={() => removeFile(idx)}
-                      className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
+                      className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-xl transition-colors cursor-pointer"
                       title="Remove file"
                     >
                       <Trash2 className="w-4 h-4" />

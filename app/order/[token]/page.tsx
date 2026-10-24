@@ -307,16 +307,16 @@ export default function OrderTrackingPage() {
 
         {/* Rejected Banner with Resubmission Option */}
         {isRejected && (
-          <div className="bg-rose-100 border-2 border-slate-900 rounded-3xl p-6 sm:p-7 text-center space-y-4 shadow-[4px_4px_0px_0px_#0f172a] animate-in fade-in">
-            <div className="w-14 h-14 bg-rose-200 border-2 border-slate-900 text-rose-950 rounded-2xl flex items-center justify-center mx-auto shadow-[2px_2px_0px_0px_#0f172a]">
-              <AlertCircle className="w-8 h-8 stroke-[2.5]" />
+          <div className="bg-rose-50 border border-rose-200 rounded-3xl p-6 sm:p-7 text-center space-y-4 shadow-sm animate-in fade-in">
+            <div className="w-12 h-12 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center mx-auto">
+              <AlertCircle className="w-6 h-6 stroke-[2.5]" />
             </div>
             <div>
-              <h3 className="text-lg font-black text-rose-950">
+              <h3 className="text-lg font-bold text-rose-950">
                 Payment Verification Needed
               </h3>
-              <p className="text-xs font-bold text-rose-900 mt-1 max-w-md mx-auto">
-                <strong>Reason:</strong> {order.rejection_reason || "Payment could not be verified by counter staff. Please pay at the counter or re-submit your 12-digit UPI UTR number below."}
+              <p className="text-xs text-rose-800 mt-1 max-w-md mx-auto">
+                <strong>Reason:</strong> {order.rejection_reason || "Payment could not be verified by counter staff. Please re-submit your 12-digit UPI UTR number below."}
               </p>
             </div>
 
@@ -327,7 +327,7 @@ export default function OrderTrackingPage() {
                   value={retryUtr}
                   onChange={(e) => setRetryUtr(e.target.value)}
                   placeholder="Enter corrected 12-digit UPI UTR"
-                  className="flex-1 px-3 py-2 text-xs font-bold font-mono border-2 border-slate-900 rounded-xl outline-none focus:bg-yellow-50 bg-white"
+                  className="flex-1 px-3 py-2 text-xs font-bold font-mono border border-slate-200 rounded-xl outline-none focus:border-indigo-500 bg-white"
                 />
                 <button
                   type="button"
@@ -335,18 +335,9 @@ export default function OrderTrackingPage() {
                   onClick={() => handleResubmitPayment(retryUtr)}
                   className="px-4 py-2 neo-btn-primary text-xs shrink-0 cursor-pointer disabled:opacity-50"
                 >
-                  {isResubmitting ? "Updating..." : "Resubmit"}
+                  {isResubmitting ? "Updating..." : "Resubmit UPI UTR"}
                 </button>
               </div>
-
-              <button
-                type="button"
-                disabled={isResubmitting}
-                onClick={() => handleResubmitPayment("CASH-AT-COUNTER")}
-                className="w-full py-2.5 bg-white hover:bg-slate-100 border-2 border-slate-900 text-slate-900 text-xs font-black rounded-xl shadow-[2px_2px_0px_0px_#0f172a] transition-all cursor-pointer"
-              >
-                I will pay cash (₹{Number(order.total_amount).toFixed(2)}) at the counter
-              </button>
             </div>
           </div>
         )}
