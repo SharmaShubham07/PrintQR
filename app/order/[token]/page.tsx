@@ -31,6 +31,8 @@ export default function OrderTrackingPage() {
   const [order, setOrder] = useState<Order | null>(null);
   const [loading, setLoading] = useState(true);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [retryUtr, setRetryUtr] = useState("");
+  const [isResubmitting, setIsResubmitting] = useState(false);
   const confettiFiredRef = useRef(false);
 
   // Fetch order function
@@ -46,6 +48,32 @@ export default function OrderTrackingPage() {
       console.error("Fetch order error:", err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleResubmitPayment = async (newUtr?: string) => {
+    if (!order) return;
+    setIsResubmitting(true);
+    try {
+      const finalUtr = newUtr?.trim() || retryUtr.trim() || `RETRY-${Date.now().toString().slice(-6)}`;
+      const res = await fetch(`/api/orders/${order.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          status: "payment_pending",
+          utr_number: finalUtr,
+          rejection_reason: null,
+        }),
+      });
+
+      if (res.ok) {
+        setOrder((prev) => prev ? ({ ...prev, status: "payment_pending", utr_number: finalUtr, rejection_reason: undefined }) : null);
+        setRetryUtr("");
+      }
+    } catch (err) {
+      console.error("Resubmit payment error:", err);
+    } finally {
+      setIsResubmitting(false);
     }
   };
 
@@ -271,21 +299,51 @@ export default function OrderTrackingPage() {
           </div>
         )}
 
-        {/* Rejected Banner */}
+        {/* Rejected Banner with Resubmission Option */}
         {isRejected && (
-          <div className="bg-rose-50 border border-rose-200 rounded-3xl p-6 text-center space-y-2">
+          <div className="bg-rose-50 border-2 border-rose-300 rounded-3xl p-6 sm:p-7 text-center space-y-4 shadow-sm animate-in fade-in">
             <div className="w-12 h-12 bg-rose-100 text-rose-600 rounded-2xl flex items-center justify-center mx-auto">
               <AlertCircle className="w-6 h-6" />
             </div>
-            <h3 className="text-base font-bold text-rose-800">
-              Files Declined by Shopkeeper
-            </h3>
-            <p className="text-xs text-rose-700">
-              {order.rejection_reason || "The document could not be processed. Please consult the counter operator."}
-            </p>
+            <div>
+              <h3 className="text-base font-bold text-rose-900">
+                Payment Verification Needed
+              </h3>
+              <p className="text-xs text-rose-700 mt-1 max-w-md mx-auto">
+                <strong>Reason:</strong> {order.rejection_reason || "Payment could not be verified by counter staff. Please pay at the counter or re-submit your 12-digit UPI UTR number below."}
+              </p>
+            </div>
+
+            <div className="max-w-sm mx-auto space-y-2 pt-2">
+              <div className="flex gap-2">
+                <input
+                  type="text"
+                  value={retryUtr}
+                  onChange={(e) => setRetryUtr(e.target.value)}
+                  placeholder="Enter corrected 12-digit UPI UTR"
+                  className="flex-1 px-3 py-2 text-xs font-mono border border-rose-300 rounded-xl outline-none focus:border-indigo-500 bg-white"
+                />
+                <button
+                  type="button"
+                  disabled={isResubmitting || !retryUtr.trim()}
+                  onClick={() => handleResubmitPayment(retryUtr)}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white font-bold text-xs rounded-xl shadow-xs transition-colors shrink-0"
+                >
+                  {isResubmitting ? "Updating..." : "Resubmit"}
+                </button>
+              </div>
+
+              <button
+                type="button"
+                disabled={isResubmitting}
+                onClick={() => handleResubmitPayment("CASH-AT-COUNTER")}
+                className="w-full py-2 bg-white hover:bg-slate-50 border border-slate-300 text-slate-700 text-xs font-semibold rounded-xl transition-colors"
+              >
+                I will pay cash (₹{Number(order.total_amount).toFixed(2)}) at the counter
+              </button>
+            </div>
           </div>
         )}
-
 
         {/* Status Stepper Pipeline */}
         <div className="bg-white border border-slate-200 rounded-3xl p-6 sm:p-8 shadow-xs space-y-6">
@@ -316,7 +374,7 @@ export default function OrderTrackingPage() {
                         : "bg-slate-100 text-slate-400"
                     }`}
                   >
-                    {state === "finished" ? "?" : idx + 1}
+                    {state === "finished" ? "✓" : idx + 1}
                   </div>
 
                   <div className="flex-1 pt-1">
@@ -333,8 +391,10 @@ export default function OrderTrackingPage() {
                     </h4>
 
                     {state === "active" && step.key === "payment_pending" && (
-                      <p className="text-xs text-slate-500 mt-0.5">
-                        Shopkeeper is matching UTR <strong>{order.utr_number}</strong> with bank records...
+                      <p className="text-xs text-amber-700 font-medium mt-0.5">
+                        {order.utr_number?.startsWith("CASH")
+                          ? `Please hand over ₹${Number(order.total_amount).toFixed(2)} cash to the counter staff to start printing.`
+                          : `Payment Reference: ${order.utr_number} • Waiting for shopkeeper verification...`}
                       </p>
                     )}
 
@@ -402,7 +462,7 @@ export default function OrderTrackingPage() {
           </div>
 
           <div className="pt-2 text-xs text-slate-400 flex items-center justify-between">
-            <span>UTR: {order.utr_number || "N/A"}</span>
+            <span>Payment ID: {order.utr_number || "Verified"}</span>
             <span>{new Date(order.created_at).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
           </div>
         </div>

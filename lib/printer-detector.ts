@@ -34,12 +34,12 @@ export async function detectWindowsPrinters(): Promise<DetectedPrinter[]> {
     const raw = JSON.parse(stdout.trim());
     const printerList = Array.isArray(raw) ? raw : [raw];
 
-    const IGNORED_NAMES = ["fax", "onenote", "anydesk", "xps document writer", "root print queue"];
+    const ALLOWED_KEYWORDS = ["brother", "canon", "cannon", "mf3010", "t220"];
 
     return printerList
       .filter((p: any) => {
-        const lower = String(p.Name || "").toLowerCase();
-        return !IGNORED_NAMES.some((ig) => lower.includes(ig));
+        const lower = (String(p.Name || "") + " " + String(p.DriverName || "")).toLowerCase();
+        return ALLOWED_KEYWORDS.some((kw) => lower.includes(kw));
       })
       .map((p: any, index: number) => {
         const name = String(p.Name || `Printer-${index + 1}`).trim();

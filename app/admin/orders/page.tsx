@@ -7,6 +7,7 @@ import DocumentPreviewModal from "@/components/DocumentPreviewModal";
 import { Order, OrderFileItem, OrderStatus, ShopInfo } from "@/lib/types";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
 import { playNewOrderChime, playCompletedChime, playAlertChime } from "@/lib/audio";
+import { triggerFullOrderAlert } from "@/lib/notifications";
 import { 
   printOrderFile, 
   printOrderSlip, 
@@ -63,32 +64,84 @@ export default function ShopkeeperPrintDashboard() {
 
   // Shop info
   const [shopInfo, setShopInfo] = useState<ShopInfo>({
-    shop_name: "Saga3's Print Shop",
-    owner_name: "heusen",
-    shop_slug: "heusen",
+    shop_name: "Preeti Communication",
+    owner_name: "Preeti Communication",
+    shop_slug: "preeti",
     tagline: "High Speed Cyber Cafe & Shopkeeper Direct Print Hub",
-    phone: "+91 98765 43210",
-    email: "heusen.printshop@gmail.com",
-    address: "Counter 1, Main Market Plaza",
-    working_hours: "08:00 AM - 10:00 PM",
+    phone: "+91 90551 43328",
+    email: "preeti.communication@gmail.com",
+    address: "Shop No. 4, Market Complex, Opp. Bus Station",
+    working_hours: "08:00 AM - 09:30 PM",
     is_closed: false,
     require_approval: true
   });
 
   const prevOrderCountRef = useRef(0);
+  const seenOrderIdsRef = useRef<Set<string>>(new Set());
+  const isInitialMountRef = useRef<boolean>(true);
+  const [incomingOrderAlert, setIncomingOrderAlert] = useState<Order | null>(null);
+  const [highlightedOrderId, setHighlightedOrderId] = useState<string | null>(null);
+
+  // Focus and momentarily highlight an order card
+  const focusAndHighlightOrder = (orderId: string) => {
+    setHighlightedOrderId(orderId);
+    const element = document.getElementById(`order-card-${orderId}`);
+    if (element) {
+      element.scrollIntoView({ behavior: "smooth", block: "center" });
+    }
+    setTimeout(() => {
+      setHighlightedOrderId((curr) => (curr === orderId ? null : curr));
+    }, 4500);
+  };
+
+  // Auto-dismiss floating incoming order alert after 16 seconds
+  useEffect(() => {
+    if (!incomingOrderAlert) return;
+    const timer = setTimeout(() => {
+      setIncomingOrderAlert(null);
+    }, 16000);
+    return () => clearTimeout(timer);
+  }, [incomingOrderAlert]);
+
+  // Listen for internal or cross-component order alerts (e.g. from test button in header or API events)
+  useEffect(() => {
+    const handleCustomAlert = (e: any) => {
+      if (e.detail?.order) {
+        setIncomingOrderAlert(e.detail.order as Order);
+      }
+    };
+    window.addEventListener("printqr:incoming-order", handleCustomAlert);
+    return () => window.removeEventListener("printqr:incoming-order", handleCustomAlert);
+  }, []);
+
+  // Detect newly placed print orders and trigger Chrome desktop notifications & in-app alerts
+  const handleIncomingOrdersDetection = (orderList: Order[]) => {
+    if (isInitialMountRef.current) {
+      orderList.forEach((o) => seenOrderIdsRef.current.add(o.id));
+      isInitialMountRef.current = false;
+      return;
+    }
+
+    const newOrders = orderList.filter((o) => !seenOrderIdsRef.current.has(o.id));
+    if (newOrders.length > 0) {
+      newOrders.forEach((o) => seenOrderIdsRef.current.add(o.id));
+      const latestOrder = newOrders[0];
+      // Trigger full multi-modal alert: audio chime + Chrome notification + tab title + on-screen popup
+      triggerFullOrderAlert(latestOrder, () => {
+        focusAndHighlightOrder(latestOrder.id);
+      });
+      setIncomingOrderAlert(latestOrder);
+    }
+  };
 
   // Fetch shop settings
   useEffect(() => {
     async function loadShopInfo() {
-      if (!isSupabaseConfigured) return;
       try {
-        const { data } = await supabase
-          .from("settings")
-          .select("value")
-          .eq("key", "shop_info")
-          .maybeSingle();
-        if (data?.value) {
-          setShopInfo((prev) => ({ ...prev, ...data.value }));
+        const res = await fetch("/api/admin/settings");
+        const data = await res.json();
+        if (data?.success && data.settings) {
+          setShopInfo((prev) => ({ ...prev, ...data.settings }));
         }
       } catch (e) {
         console.error("Error loading shop settings:", e);
@@ -97,19 +150,21 @@ export default function ShopkeeperPrintDashboard() {
     loadShopInfo();
   }, []);
 
-  // Fetch orders from API
+  // Fetch orders from API with strict no-cache to instantly catch incoming customer prints
   const fetchOrders = async () => {
     try {
-      const res = await fetch("/api/orders");
+      const res = await fetch(`/api/orders?t=${Date.now()}`, {
+        cache: "no-store",
+        headers: { "Pragma": "no-cache", "Cache-Control": "no-cache" }
+      });
       if (res.ok) {
         const data = await res.json();
         if (data.success && Array.isArray(data.orders)) {
           const fetchedOrders = data.orders as Order[];
-          if (fetchedOrders.length > prevOrderCountRef.current && prevOrderCountRef.current > 0) {
-            playNewOrderChime();
-          }
+          handleIncomingOrdersDetection(fetchedOrders);
           prevOrderCountRef.current = fetchedOrders.length;
           setOrders(fetchedOrders);
+          setLoading(false);
           return;
         }
       }
@@ -128,9 +183,7 @@ export default function ShopkeeperPrintDashboard() {
           .order("created_at", { ascending: false });
 
         if (!error && data) {
-          if (data.length > prevOrderCountRef.current && prevOrderCountRef.current > 0) {
-            playNewOrderChime();
-          }
+          handleIncomingOrdersDetection(data as Order[]);
           prevOrderCountRef.current = data.length;
           setOrders(data as Order[]);
         }
@@ -366,6 +419,17 @@ export default function ShopkeeperPrintDashboard() {
 
   // 1-Click Print for Single File
   const handlePrintFile = async (file: OrderFileItem, order: Order) => {
+    // Payment enforcement: payment must be confirmed before printing
+    if (order.status === "payment_pending") {
+      const confirmPay = window.confirm(
+        `⚠️ Payment Verification Required!\n\nToken #${order.token_number || 1} (${order.customer_name}) has payment pending of ₹${Number(order.total_amount).toFixed(2)}.\n\nHas payment been received? Click OK to confirm payment and proceed with printing "${file.file_name}".`
+      );
+      if (!confirmPay) {
+        return;
+      }
+      await updateOrderStatus(order.id, "queued");
+    }
+
     setIsPrinting(true);
     setPrintToast({
       message: `Sending "${file.file_name}" to printer...`,
@@ -395,6 +459,17 @@ export default function ShopkeeperPrintDashboard() {
 
   // 1-Click Serial Print All Files in Customer Batch
   const handlePrintAllSerial = async (order: Order) => {
+    // Payment enforcement: payment must be confirmed before printing
+    if (order.status === "payment_pending") {
+      const confirmPay = window.confirm(
+        `⚠️ Payment Verification Required!\n\nToken #${order.token_number || 1} (${order.customer_name}) has payment pending of ₹${Number(order.total_amount).toFixed(2)}.\n\nHas payment been received? Click OK to confirm payment and print all files in serial order.`
+      );
+      if (!confirmPay) {
+        return;
+      }
+      await updateOrderStatus(order.id, "queued");
+    }
+
     if (!order.files || order.files.length === 0) {
       printOrderSlip(order);
       return;
@@ -613,32 +688,42 @@ export default function ShopkeeperPrintDashboard() {
                     <span className="text-xs text-indigo-200">
                       {formatTimeAgo(nextInLineOrder.created_at)}
                     </span>
+                    {nextInLineOrder.files?.some((f) => f.color_mode === "color") ? (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-gradient-to-r from-amber-400 to-pink-400 text-slate-950 shadow-xs">
+                        🌈 Brother Color
+                      </span>
+                    ) : (
+                      <span className="px-2 py-0.5 rounded-full text-[10px] font-black uppercase bg-slate-950 text-white border border-slate-700 shadow-xs">
+                        ⚫ Canon B&amp;W
+                      </span>
+                    )}
                   </div>
                   <h3 className="text-base sm:text-lg font-black text-white mt-0.5">
-                    {nextInLineOrder.customer_name} • {nextInLineOrder.files?.length || 0} document{(nextInLineOrder.files?.length || 0) > 1 ? "s" : ""}
+                    {nextInLineOrder.customer_name} • {nextInLineOrder.files?.length || 0} document{(nextInLineOrder.files?.length || 0) > 1 ? "s" : ""} • ₹{nextInLineOrder.total_amount?.toFixed(2)}
                   </h3>
                 </div>
               </div>
 
               <div className="flex items-center gap-2.5 w-full sm:w-auto">
-                {nextInLineOrder.status === "payment_pending" && (
+                {nextInLineOrder.status === "payment_pending" ? (
                   <button
                     type="button"
                     onClick={() => updateOrderStatus(nextInLineOrder.id, "queued")}
-                    className="flex-1 sm:flex-none px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-slate-950 font-bold text-xs rounded-xl transition flex items-center justify-center gap-1.5 shadow-sm"
+                    className="flex-1 sm:flex-none px-4 py-2.5 bg-emerald-400 hover:bg-emerald-300 text-slate-950 font-black text-xs rounded-xl transition flex items-center justify-center gap-1.5 shadow-md"
                   >
-                    <Check className="w-4 h-4" />
-                    <span>Accept Files</span>
+                    <Check className="w-4 h-4 stroke-[3]" />
+                    <span>Confirm Payment Received</span>
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => handlePrintAllSerial(nextInLineOrder)}
+                    className="flex-1 sm:flex-none px-5 py-2.5 bg-gradient-to-r from-cyan-400 to-indigo-400 hover:from-cyan-300 hover:to-indigo-300 text-slate-950 font-black text-xs rounded-xl transition flex items-center justify-center gap-2 shadow-md"
+                  >
+                    <Play className="w-3.5 h-3.5 fill-current" />
+                    <span>Print All in Sequence</span>
                   </button>
                 )}
-                <button
-                  type="button"
-                  onClick={() => handlePrintAllSerial(nextInLineOrder)}
-                  className="flex-1 sm:flex-none px-5 py-2.5 bg-gradient-to-r from-cyan-400 to-indigo-400 hover:from-cyan-300 hover:to-indigo-300 text-slate-950 font-black text-xs rounded-xl transition flex items-center justify-center gap-2 shadow-md"
-                >
-                  <Play className="w-3.5 h-3.5 fill-current" />
-                  <span>Print All in Sequence</span>
-                </button>
               </div>
             </div>
           )}
@@ -709,8 +794,11 @@ export default function ShopkeeperPrintDashboard() {
                 return (
                   <div
                     key={order.id}
+                    id={`order-card-${order.id}`}
                     className={`bg-white border rounded-2xl p-5 shadow-xs transition-all ${
-                      isNextInLine
+                      highlightedOrderId === order.id
+                        ? "border-indigo-600 ring-4 ring-indigo-500/40 shadow-xl scale-[1.008]"
+                        : isNextInLine
                         ? "border-indigo-400 ring-2 ring-indigo-500/10"
                         : isDone
                         ? "border-slate-200 opacity-80"
@@ -757,23 +845,51 @@ export default function ShopkeeperPrintDashboard() {
                             )}
 
                             {/* Status Badge */}
-                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-bold ${
+                            <span className={`inline-flex items-center gap-1.5 px-3 py-0.5 rounded-full text-xs font-bold ${
                               isDone
                                 ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
                                 : isPrintingOrder
                                 ? "bg-indigo-50 text-indigo-700 border border-indigo-200"
                                 : isPending
-                                ? "bg-amber-50 text-amber-700 border border-amber-200"
+                                ? "bg-amber-100 text-amber-900 border border-amber-300 animate-pulse font-extrabold"
                                 : isDeclined
                                 ? "bg-rose-50 text-rose-700 border border-rose-200"
                                 : "bg-cyan-50 text-cyan-700 border border-cyan-200"
                             }`}>
                               {isDone && "✅ All Printed"}
                               {isPrintingOrder && "🖨️ Printing..."}
-                              {isPending && "⏳ Pending Approval"}
+                              {isPending && "⚠️ Payment Pending"}
                               {isDeclined && "❌ Declined"}
-                              {order.status === "queued" && "📋 In Queue"}
+                              {order.status === "queued" && "📋 Paid & In Queue"}
                             </span>
+
+                            {/* Color vs B&W Summary Pill */}
+                            {(() => {
+                              const hasColor = order.files?.some((f) => f.color_mode === "color");
+                              const hasBw = order.files?.some((f) => f.color_mode !== "color");
+                              if (hasColor && hasBw) {
+                                return (
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black bg-purple-700 text-white shadow-xs">
+                                    <Sparkles className="w-3 h-3 text-yellow-300" />
+                                    Mixed (Color &amp; B&amp;W)
+                                  </span>
+                                );
+                              }
+                              if (hasColor) {
+                                return (
+                                  <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-xs">
+                                    <Sparkles className="w-3 h-3 text-yellow-300" />
+                                    Brother Color Order
+                                  </span>
+                                );
+                              }
+                              return (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-black bg-slate-900 text-white shadow-xs border border-slate-700">
+                                  <span className="w-1.5 h-1.5 rounded-full bg-slate-300"></span>
+                                  Canon B&amp;W Order
+                                </span>
+                              );
+                            })()}
                           </div>
 
                           <div className="flex items-center gap-2 text-xs text-slate-500 mt-1 flex-wrap">
@@ -788,60 +904,111 @@ export default function ShopkeeperPrintDashboard() {
                                 <span className="text-slate-900 font-bold">₹{order.total_amount.toFixed(2)}</span>
                               </>
                             )}
+                            {order.utr_number && (
+                              <>
+                                <span>•</span>
+                                <span className="font-mono text-[11px] text-slate-600 bg-slate-100 px-1.5 py-0.5 rounded">
+                                  Ref: {order.utr_number}
+                                </span>
+                              </>
+                            )}
                           </div>
                         </div>
                       </div>
 
-                      {/* Header Batch Actions */}
-                      <div className="flex items-center gap-2 self-end sm:self-auto flex-wrap">
-                        {isPending && (
-                          <>
+                      {/* Header Batch Actions & Color Mode Tag ("HERE") */}
+                      <div className="flex flex-col items-end gap-2 self-end sm:self-auto shrink-0">
+                        <div className="flex items-center gap-2 flex-wrap justify-end">
+                          {isPending && (
+                            <>
+                              <button
+                                type="button"
+                                onClick={() => updateOrderStatus(order.id, "queued")}
+                                className="px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-black transition flex items-center gap-1.5 shadow-sm"
+                                title="Confirm that payment of this order was received and send to print queue"
+                              >
+                                <Check className="w-4 h-4 stroke-[3]" />
+                                <span>Confirm Payment Received (₹{order.total_amount?.toFixed(2)})</span>
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => {
+                                  setOrderToReject(order);
+                                  setRejectionModalOpen(true);
+                                }}
+                                className="px-3 py-2 bg-white border border-rose-200 hover:bg-rose-50 text-rose-700 rounded-xl text-xs font-bold transition flex items-center gap-1 shadow-xs"
+                              >
+                                <X className="w-3.5 h-3.5" />
+                                <span>Decline</span>
+                              </button>
+                            </>
+                          )}
+
+                          {!isDone && !isDeclined && (
                             <button
                               type="button"
-                              onClick={() => updateOrderStatus(order.id, "queued")}
-                              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-bold transition flex items-center gap-1 shadow-xs"
+                              onClick={() => handlePrintAllSerial(order)}
+                              disabled={isPrinting}
+                              className={`px-3.5 py-2 rounded-xl text-xs font-black transition flex items-center gap-1.5 shadow-sm ${
+                                isPending
+                                  ? "bg-amber-600 hover:bg-amber-700 text-white"
+                                  : "bg-indigo-600 hover:bg-indigo-700 text-white"
+                              }`}
+                              title={isPending ? "Payment pending: Click to confirm payment and print all files" : "Print all files in this customer batch in serial order"}
                             >
-                              <Check className="w-3.5 h-3.5" />
-                              <span>Accept</span>
+                              <Printer className="w-3.5 h-3.5" />
+                              <span>{isPending ? "Confirm Pay & Serial Print" : "1-Click Serial Print"}</span>
                             </button>
+                          )}
+
+                          {!isDone && !isDeclined && (
                             <button
                               type="button"
-                              onClick={() => {
-                                setOrderToReject(order);
-                                setRejectionModalOpen(true);
-                              }}
-                              className="px-3 py-1.5 bg-white border border-rose-200 hover:bg-rose-50 text-rose-700 rounded-xl text-xs font-bold transition flex items-center gap-1 shadow-xs"
+                              onClick={() => updateOrderStatus(order.id, "completed")}
+                              className="px-3 py-1.5 border border-slate-200 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300 text-slate-700 rounded-xl text-xs font-semibold transition flex items-center gap-1"
+                              title="Mark this customer order as completed"
                             >
-                              <X className="w-3.5 h-3.5" />
-                              <span>Decline</span>
+                              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                              <span>Mark Done</span>
                             </button>
-                          </>
-                        )}
+                          )}
+                        </div>
 
-                        {!isDone && !isDeclined && (
-                          <button
-                            type="button"
-                            onClick={() => handlePrintAllSerial(order)}
-                            disabled={isPrinting}
-                            className="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl text-xs font-bold transition flex items-center gap-1.5 shadow-xs"
-                            title="Print all files in this customer batch in serial order"
-                          >
-                            <Printer className="w-3.5 h-3.5" />
-                            <span>1-Click Serial Print</span>
-                          </button>
-                        )}
-
-                        {!isDone && !isDeclined && (
-                          <button
-                            type="button"
-                            onClick={() => updateOrderStatus(order.id, "completed")}
-                            className="px-3 py-1.5 border border-slate-200 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-300 text-slate-700 rounded-xl text-xs font-semibold transition flex items-center gap-1"
-                            title="Mark this customer order as completed"
-                          >
-                            <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
-                            <span>Mark Done</span>
-                          </button>
-                        )}
+                        {/* EXACT POSITION: Prominent Color Mode & Hardware Printer Display ("HERE") */}
+                        <div className="flex items-center gap-2 justify-end w-full">
+                          {(() => {
+                            const hasColor = order.files?.some((f) => f.color_mode === "color");
+                            const hasBw = order.files?.some((f) => f.color_mode !== "color");
+                            if (hasColor && hasBw) {
+                              return (
+                                <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-xl bg-gradient-to-r from-purple-700 via-indigo-700 to-indigo-900 text-white shadow-md border border-purple-400/40 text-xs font-black tracking-wide">
+                                  <Sparkles className="w-4 h-4 text-yellow-300 fill-yellow-300" />
+                                  <span>MIXED (COLOR &amp; B&amp;W)</span>
+                                  <span className="opacity-60">•</span>
+                                  <span className="font-bold text-[11px] text-purple-200">Brother &amp; Canon</span>
+                                </div>
+                              );
+                            }
+                            if (hasColor) {
+                              return (
+                                <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-xl bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 text-white shadow-md border border-purple-400/40 text-xs font-black tracking-wide">
+                                  <Sparkles className="w-4 h-4 text-yellow-200 fill-yellow-200" />
+                                  <span>COLOR PRINT</span>
+                                  <span className="opacity-60">•</span>
+                                  <span className="font-bold text-[11px] text-purple-100">Brother DCP-T220</span>
+                                </div>
+                              );
+                            }
+                            return (
+                              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-xl bg-slate-900 text-white shadow-md border border-slate-700 text-xs font-black tracking-wide">
+                                <span className="w-2.5 h-2.5 rounded-full bg-slate-300"></span>
+                                <span>BLACK &amp; WHITE</span>
+                                <span className="opacity-60">•</span>
+                                <span className="font-bold text-[11px] text-slate-300">Canon imageCLASS MF3010</span>
+                              </div>
+                            );
+                          })()}
+                        </div>
                       </div>
                     </div>
 
@@ -893,24 +1060,40 @@ export default function ShopkeeperPrintDashboard() {
                                       </span>
                                     </div>
 
-                                    <div className="flex items-center gap-2 text-[11px] text-slate-500 font-medium mt-0.5 flex-wrap">
-                                      <span className="font-bold text-slate-700">
+                                    <div className="flex items-center gap-2 text-xs font-semibold mt-1.5 flex-wrap">
+                                      {/* Prominent Color Mode Badge */}
+                                      {file.color_mode === "color" ? (
+                                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg font-black text-xs bg-gradient-to-r from-purple-600 via-pink-600 to-amber-500 text-white shadow-xs tracking-wider">
+                                          <Sparkles className="w-3.5 h-3.5 text-yellow-200 fill-yellow-200" />
+                                          <span>COLOR PRINT</span>
+                                        </span>
+                                      ) : (
+                                        <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-lg font-black text-xs bg-slate-900 text-white shadow-xs border border-slate-700 tracking-wider">
+                                          <span className="w-2 h-2 rounded-full bg-slate-300"></span>
+                                          <span>BLACK &amp; WHITE</span>
+                                        </span>
+                                      )}
+
+                                      {/* Assigned Hardware Printer */}
+                                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg font-bold text-xs bg-indigo-50 text-indigo-700 border border-indigo-200">
+                                        <Printer className="w-3.5 h-3.5 text-indigo-600" />
+                                        <span>
+                                          {file.printer?.display_name ||
+                                           (file as any).printer_name ||
+                                           (file.color_mode === "color" ? "Brother DCP-T220 (Color)" : "Canon imageCLASS MF3010 (B&W)")}
+                                        </span>
+                                      </span>
+
+                                      <span className="text-slate-400">•</span>
+                                      <span className="font-bold text-slate-800">
                                         {file.copies} {file.copies > 1 ? "copies" : "copy"}
                                       </span>
-                                      <span>•</span>
-                                      <span className={`px-1.5 py-0.2 rounded font-bold uppercase text-[10px] ${
-                                        file.color_mode === "color"
-                                          ? "bg-amber-100 text-amber-800"
-                                          : "bg-slate-200 text-slate-700"
-                                      }`}>
-                                        {file.color_mode.toUpperCase()}
-                                      </span>
-                                      <span>•</span>
-                                      <span>{file.paper_size || "A4"}</span>
-                                      <span>•</span>
-                                      <span>{file.duplex === "double" ? "Double-sided" : "Single-sided"}</span>
-                                      <span>•</span>
-                                      <span>{file.page_count} {file.page_count === 1 ? "page" : "pages"}</span>
+                                      <span className="text-slate-400">•</span>
+                                      <span className="text-slate-600">{file.paper_size || "A4"}</span>
+                                      <span className="text-slate-400">•</span>
+                                      <span className="text-slate-600">{file.duplex === "double" ? "Double-sided" : "Single-sided"}</span>
+                                      <span className="text-slate-400">•</span>
+                                      <span className="text-slate-600">{file.page_count} {file.page_count === 1 ? "page" : "pages"}</span>
                                     </div>
                                   </div>
                                 </div>
@@ -946,11 +1129,15 @@ export default function ShopkeeperPrintDashboard() {
                                     type="button"
                                     onClick={() => handlePrintFile(file, order)}
                                     disabled={isPrinting}
-                                    className="inline-flex items-center gap-1 px-2.5 py-1.5 bg-slate-900 hover:bg-indigo-600 text-white rounded-lg text-xs font-bold transition shadow-2xs"
-                                    title="Send this file to print"
+                                    className={`inline-flex items-center gap-1 px-3 py-1.5 rounded-lg text-xs font-bold transition shadow-xs ${
+                                      isPending
+                                        ? "bg-amber-600 hover:bg-amber-700 text-white"
+                                        : "bg-slate-900 hover:bg-indigo-600 text-white"
+                                    }`}
+                                    title={isPending ? "Payment pending: Click to confirm payment and print" : "Send this file to print"}
                                   >
                                     <Printer className="w-3.5 h-3.5" />
-                                    <span>Print</span>
+                                    <span>{isPending ? "Pay & Print" : "Print"}</span>
                                   </button>
                                 </div>
                               </div>
@@ -1060,6 +1247,129 @@ export default function ShopkeeperPrintDashboard() {
             </div>
           </div>
         </div>
+      )}
+
+      {/* Professional Floating New Order Popup (Desktop & In-App) */}
+      {incomingOrderAlert && (
+        <aside
+          aria-label="New Print Order Notification"
+          className="fixed top-20 right-4 sm:right-6 z-[9999] max-w-md w-[calc(100vw-2rem)] bg-slate-950/95 backdrop-blur-xl border-2 border-indigo-500/80 rounded-3xl p-5 shadow-[0_20px_50px_rgba(0,0,0,0.6),0_0_40px_rgba(99,102,241,0.35)] text-white animate-in slide-in-from-top-6 duration-300"
+        >
+          {/* Ambient Glow */}
+          <div className="absolute -top-10 -left-10 w-28 h-28 bg-indigo-500/20 rounded-full blur-2xl pointer-events-none" />
+          <div className="absolute -bottom-10 -right-10 w-28 h-28 bg-emerald-500/20 rounded-full blur-2xl pointer-events-none" />
+
+          <div className="relative z-10 space-y-3.5">
+            {/* Top Header */}
+            <div className="flex items-center justify-between gap-2 border-b border-white/10 pb-3">
+              <div className="flex items-center gap-2">
+                <span className="relative flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+                </span>
+                <span className="text-[11px] font-black uppercase tracking-widest text-emerald-400 flex items-center gap-1.5">
+                  <Sparkles className="w-3.5 h-3.5" />
+                  New Print Order Arrived!
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={() => setIncomingOrderAlert(null)}
+                className="text-white/50 hover:text-white p-1 rounded-lg hover:bg-white/10 transition cursor-pointer"
+                title="Dismiss notification"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            </div>
+
+            {/* Main Order Info */}
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <span className="px-2.5 py-0.5 rounded-lg bg-indigo-500/25 border border-indigo-400/50 text-indigo-300 font-black text-sm">
+                    Token #{incomingOrderAlert.token_number || 1}
+                  </span>
+                  <span className="font-bold text-slate-100 text-sm">
+                    {incomingOrderAlert.customer_name || "Walk-in Customer"}
+                  </span>
+                </div>
+                {incomingOrderAlert.customer_phone && (
+                  <p className="text-xs text-white/60 mt-1 font-mono">
+                    📱 {incomingOrderAlert.customer_phone}
+                  </p>
+                )}
+              </div>
+
+              <div className="text-right">
+                <p className="text-xl font-black text-white">
+                  ₹{Number(incomingOrderAlert.total_amount || 0).toFixed(2)}
+                </p>
+                <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-md mt-0.5 ${
+                  incomingOrderAlert.status !== "payment_pending"
+                    ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                    : "bg-amber-500/20 text-amber-300 border border-amber-500/30"
+                }`}>
+                  {incomingOrderAlert.status !== "payment_pending" ? "✅ Payment Done" : "⏳ Payment Pending"}
+                </span>
+              </div>
+            </div>
+
+            {/* Printer & Color Spec Badge */}
+            {(() => {
+              const isColor = incomingOrderAlert.files?.some(f => f.color_mode === "color");
+              const totalPgs = incomingOrderAlert.files?.reduce((s, f) => s + ((f.effective_pages || f.page_count || 1) * (f.copies || 1)), 0) || 1;
+              return (
+                <div className={`p-2.5 rounded-xl border flex items-center justify-between text-xs font-bold ${
+                  isColor
+                    ? "bg-gradient-to-r from-amber-500/10 via-rose-500/10 to-indigo-500/10 border-amber-500/40 text-amber-200"
+                    : "bg-slate-800/80 border-slate-700 text-slate-200"
+                }`}>
+                  <div className="flex items-center gap-2">
+                    <Printer className="w-4 h-4 text-white" />
+                    <span>
+                      {isColor ? "🌈 COLOR PRINT (Brother DCP-T220)" : "⚫ BLACK & WHITE (Canon MF3010)"}
+                    </span>
+                  </div>
+                  <span className="text-[11px] text-white/80 font-mono">
+                    {totalPgs} {totalPgs === 1 ? "page" : "pages"}
+                  </span>
+                </div>
+              );
+            })()}
+
+            {/* Action Buttons */}
+            <div className="flex items-center gap-2 pt-1">
+              <button
+                type="button"
+                onClick={() => {
+                  focusAndHighlightOrder(incomingOrderAlert.id);
+                  setIncomingOrderAlert(null);
+                }}
+                className="flex-1 py-2.5 px-4 rounded-xl bg-gradient-to-r from-cyan-400 to-indigo-500 hover:from-cyan-300 hover:to-indigo-400 text-slate-950 font-black text-xs transition flex items-center justify-center gap-2 shadow-lg cursor-pointer"
+              >
+                <Printer className="w-4 h-4 fill-current" />
+                <span>View &amp; Print Order</span>
+              </button>
+              <button
+                type="button"
+                onClick={() => setIncomingOrderAlert(null)}
+                className="py-2.5 px-3 rounded-xl bg-white/10 hover:bg-white/20 text-white text-xs font-bold transition cursor-pointer"
+              >
+                Dismiss
+              </button>
+            </div>
+
+            {/* Auto-dismiss timer indicator */}
+            <div className="w-full bg-white/10 h-1 rounded-full overflow-hidden">
+              <div 
+                className="h-full bg-indigo-400 rounded-full" 
+                style={{ 
+                  animation: "shrink 12s linear forwards" 
+                }} 
+              />
+            </div>
+          </div>
+        </aside>
       )}
     </div>
   );

@@ -54,6 +54,7 @@ export default function CustomerPortal() {
   // Shop settings & payment method state
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>(DEFAULT_PAYMENT_METHOD);
   const [isShopClosed, setIsShopClosed] = useState<boolean>(false);
+  const [closedNotice, setClosedNotice] = useState<string>("");
   const [printers, setPrinters] = useState<Printer[]>(DEFAULT_PRINTERS);
   const [isRefreshingPrinters, setIsRefreshingPrinters] = useState<boolean>(false);
 
@@ -84,39 +85,49 @@ export default function CustomerPortal() {
     }
   };
 
-  useEffect(() => {
-    async function loadShopConfig() {
-      try {
-        const { data: pm } = await supabase
-          .from("payment_methods")
-          .select("*")
-          .eq("is_active", true)
-          .limit(1)
-          .maybeSingle();
-        if (pm) {
-          setPaymentMethod(pm);
+  const fetchShopSettings = async () => {
+    try {
+      const res = await fetch("/api/admin/settings");
+      const data = await res.json();
+      if (data.success && data.settings) {
+        setIsShopClosed(Boolean(data.settings.is_closed));
+        if (data.settings.closed_notice) {
+          setClosedNotice(data.settings.closed_notice);
         }
-
-        const { data: setting } = await supabase
-          .from("settings")
-          .select("value")
-          .eq("key", "shop_info")
-          .maybeSingle();
-        if (setting?.value?.is_closed !== undefined) {
-          setIsShopClosed(Boolean(setting.value.is_closed));
-        }
-
-        // Fetch live connected printers directly from system
-        await fetchLivePrinters();
-
-        // Fetch live pricing
-        await fetchLivePricing();
-      } catch (err) {
-        console.error("Error loading shop config:", err);
       }
+    } catch (err) {
+      console.error("Error fetching shop settings:", err);
     }
+  };
 
-    loadShopConfig();
+  const fetchPaymentMethod = async () => {
+    try {
+      const res = await fetch("/api/admin/payment-methods");
+      const data = await res.json();
+      if (data.success && data.primary) {
+        setPaymentMethod(data.primary);
+      }
+    } catch (err) {
+      console.error("Error fetching payment methods:", err);
+    }
+  };
+
+  useEffect(() => {
+    const loadAll = async () => {
+      await Promise.all([
+        fetchShopSettings(),
+        fetchPaymentMethod(),
+        fetchLivePrinters(),
+        fetchLivePricing(),
+      ]);
+    };
+
+    loadAll();
+
+    // 8-second polling fallback ensures instantaneous sync if shopkeeper adjusts rates or pauses counter
+    const pollInterval = setInterval(() => {
+      loadAll();
+    }, 8000);
 
     // Subscribe to realtime printer updates
     const printerChannel = supabase
@@ -143,6 +154,7 @@ export default function CustomerPortal() {
       .subscribe();
 
     return () => {
+      clearInterval(pollInterval);
       supabase.removeChannel(printerChannel);
       supabase.removeChannel(pricingChannel);
     };
@@ -170,12 +182,28 @@ export default function CustomerPortal() {
     const updated = [...files];
     const target = { ...updated[index], ...updates };
 
-    // If color mode changed to color, ensure printer supports color
+    // Synchronize Brother = Color, Canon = Black & White
     if (updates.color_mode === "color") {
-      const colorPrinter = printers.find(p => (p.type === "both" || p.type === "color") && p.status === "online")
+      const brother = printers.find(p => (p.display_name + " " + p.system_name).toLowerCase().includes("brother"))
         || printers.find(p => p.type === "both" || p.type === "color");
-      if (colorPrinter) {
-        target.printer_id = colorPrinter.id;
+      if (brother) {
+        target.printer_id = brother.id;
+      }
+    } else if (updates.color_mode === "bw") {
+      const canon = printers.find(p => (p.display_name + " " + p.system_name).toLowerCase().includes("canon"))
+        || printers.find(p => p.type === "bw");
+      if (canon) {
+        target.printer_id = canon.id;
+      }
+    }
+
+    if (updates.printer_id) {
+      const printerObj = printers.find(p => p.id === updates.printer_id);
+      const pName = ((printerObj?.display_name || "") + " " + (printerObj?.system_name || "")).toLowerCase();
+      if (pName.includes("brother")) {
+        target.color_mode = "color";
+      } else if (pName.includes("canon") || pName.includes("cannon")) {
+        target.color_mode = "bw";
       }
     }
 
@@ -357,6 +385,21 @@ export default function CustomerPortal() {
           </div>
         </div>
 
+        {/* Shop Closed Alert Banner */}
+        {isShopClosed && (
+          <div className="bg-rose-50 border-2 border-rose-300 rounded-2xl p-4 sm:p-5 flex items-start gap-3.5 text-rose-900 shadow-sm animate-in fade-in">
+            <div className="w-10 h-10 rounded-xl bg-rose-100 text-rose-600 flex items-center justify-center shrink-0">
+              <Clock className="w-5 h-5" />
+            </div>
+            <div className="flex-1">
+              <h3 className="text-sm font-black uppercase tracking-wide">Counter Currently Closed</h3>
+              <p className="text-xs text-rose-700 mt-0.5 leading-relaxed">
+                {closedNotice || "The print shop counter is temporarily not accepting orders. Please visit the counter or try again later."}
+              </p>
+            </div>
+          </div>
+        )}
+
         {/* Error message banner */}
         {errorMsg && (
           <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs sm:text-sm rounded-xl flex items-center gap-2">
@@ -426,10 +469,10 @@ export default function CustomerPortal() {
               <button
                 type="button"
                 onClick={handleNextStep}
-                disabled={!isFilesValid}
+                disabled={!isFilesValid || isShopClosed}
                 className="w-full py-4 px-6 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-200 disabled:text-slate-400 text-white font-bold rounded-2xl shadow-lg shadow-indigo-600/20 active:scale-[0.99] transition-all flex items-center justify-center gap-2 text-sm sm:text-base cursor-pointer disabled:cursor-not-allowed"
               >
-                <span>{language === "hi" ? "प्रिंटर और सेटिंग्स चुनें" : "Select Printer & Print Options"}</span>
+                <span>{isShopClosed ? "Counter Orders Paused" : (language === "hi" ? "प्रिंटर और सेटिंग्स चुनें" : "Select Printer & Print Options")}</span>
                 <ArrowRight className="w-4 h-4" />
               </button>
             </div>
@@ -531,7 +574,7 @@ export default function CustomerPortal() {
                         selectedPrinterId={currentFile.printer_id}
                         colorMode={currentFile.color_mode}
                         printers={printers}
-                        onSelectPrinter={(pid) => updateFileOption(activeFileIndex, { printer_id: pid })}
+                        onSelectPrinter={(pid, mode) => updateFileOption(activeFileIndex, { printer_id: pid, color_mode: mode })}
                         onRefresh={fetchLivePrinters}
                         isRefreshing={isRefreshingPrinters}
                       />
@@ -722,6 +765,8 @@ export default function CustomerPortal() {
               language={language}
               onSubmitPayment={handlePaymentSubmit}
               isSubmitting={isSubmitting}
+              customerName={customerName}
+              customerPhone={customerPhone}
             />
 
             <div className="pt-2 text-center">

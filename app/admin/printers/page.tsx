@@ -36,17 +36,17 @@ export default function AdminPrintersPage() {
   const handleSave = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      for (const p of printers) {
-        await supabase
-          .from("printers")
-          .upsert({
-            id: p.id,
-            display_name: p.display_name,
-            system_name: p.system_name,
-            type: p.type,
-            is_active: p.is_active,
-            status: p.status,
-          });
+      const res = await fetch("/api/printers/live", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ printers }),
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to save printers");
+      }
+      if (Array.isArray(data.printers)) {
+        setPrinters(data.printers);
       }
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);

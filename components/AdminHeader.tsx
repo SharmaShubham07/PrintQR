@@ -1,9 +1,15 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Volume2, Bell, Shield, Check, Copy, ExternalLink, QrCode, Sparkles } from "lucide-react";
+import { Volume2, Bell, Shield, Check, Copy, ExternalLink, QrCode, Sparkles, BellRing, BellOff } from "lucide-react";
 import { playNewOrderChime } from "@/lib/audio";
+import { 
+  getNotificationPermission, 
+  requestNotificationPermission, 
+  triggerFullOrderAlert, 
+  NotificationStatus 
+} from "@/lib/notifications";
 
 interface Props {
   title: string;
@@ -12,6 +18,7 @@ interface Props {
   ownerName?: string;
   shopSlug?: string;
   isShopClosed?: boolean;
+  onToggleShopClosed?: (closed: boolean) => void;
 }
 
 export default function AdminHeader({ 
@@ -20,15 +27,60 @@ export default function AdminHeader({
   shopName = "Preeti Communication",
   ownerName = "Preeti Communication",
   shopSlug = "preeti",
-  isShopClosed = false
+  isShopClosed = false,
+  onToggleShopClosed
 }: Props) {
   const [testedAudio, setTestedAudio] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
+  const [localClosed, setLocalClosed] = useState(isShopClosed);
+  const [isToggling, setIsToggling] = useState(false);
+  const [notifPermission, setNotifPermission] = useState<NotificationStatus>("default");
 
-  const testAudio = () => {
-    playNewOrderChime();
+  useEffect(() => {
+    setLocalClosed(isShopClosed);
+    setNotifPermission(getNotificationPermission());
+  }, [isShopClosed]);
+
+  const handleToggleOrTestNotification = async () => {
+    // 1. Immediately trigger the On-Screen popup alert + audio chime
     setTestedAudio(true);
-    setTimeout(() => setTestedAudio(false), 2000);
+    triggerFullOrderAlert({
+      id: "test-notification-" + Date.now(),
+      token_number: 1,
+      customer_name: "Walk-in Customer (Test)",
+      total_amount: 30.00,
+      status: "queued",
+      files: [{ color_mode: "color", page_count: 2, copies: 1 }]
+    });
+    setTimeout(() => setTestedAudio(false), 2500);
+
+    // 2. Also prompt/verify browser OS desktop notification permission
+    const current = getNotificationPermission();
+    if (current === "default") {
+      const res = await requestNotificationPermission();
+      setNotifPermission(res);
+    } else if (current === "denied") {
+      alert("Chrome desktop notifications are blocked in your browser settings.\n\nTo allow Chrome popups outside this tab:\n1. Click the tune/lock icon 🔒 to the left of the address bar.\n2. Set 'Notifications' to 'Allow'.\n3. Refresh this page.\n\n(In-app on-screen popups and sound will still work normally!)");
+    }
+  };
+
+  const toggleShop = async () => {
+    setIsToggling(true);
+    const targetState = !localClosed;
+    setLocalClosed(targetState);
+    try {
+      await fetch("/api/admin/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ is_closed: targetState }),
+      });
+      onToggleShopClosed?.(targetState);
+    } catch (err) {
+      console.error("Error toggling shop status:", err);
+      setLocalClosed(!targetState);
+    } finally {
+      setIsToggling(false);
+    }
   };
 
   const copyCustomerLink = () => {
@@ -45,14 +97,20 @@ export default function AdminHeader({
       <div>
         <div className="flex items-center gap-2.5 flex-wrap">
           <h1 className="text-xl font-black text-slate-900 tracking-tight">{title}</h1>
-          <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold border ${
-            isShopClosed
-              ? "bg-rose-50 text-rose-700 border-rose-200"
-              : "bg-emerald-50 text-emerald-700 border-emerald-200"
-          }`}>
-            <span className={`w-1.5 h-1.5 rounded-full ${isShopClosed ? "bg-rose-500" : "bg-emerald-500 animate-pulse"}`}></span>
-            {isShopClosed ? "Queue Paused" : "Counter Active"}
-          </span>
+          <button
+            type="button"
+            onClick={toggleShop}
+            disabled={isToggling}
+            className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold border transition-colors cursor-pointer ${
+              localClosed
+                ? "bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200"
+                : "bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200"
+            }`}
+            title="Click to toggle shop open/closed status"
+          >
+            <span className={`w-1.5 h-1.5 rounded-full ${localClosed ? "bg-rose-500" : "bg-emerald-500 animate-pulse"}`}></span>
+            <span>{localClosed ? "Queue Paused (Click to Open)" : "Counter Active (Click to Pause)"}</span>
+          </button>
         </div>
         {subtitle && <p className="text-xs text-slate-500 mt-0.5 font-medium">{subtitle}</p>}
       </div>
@@ -79,15 +137,39 @@ export default function AdminHeader({
           <span className="hidden sm:inline">Counter Poster</span>
         </Link>
 
-        {/* Audio notification test button */}
+        {/* Chrome / Desktop Popup Notification Button */}
         <button
           type="button"
-          onClick={testAudio}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-600 transition-colors shadow-xs"
-          title="Test Order Incoming Chime"
+          onClick={handleToggleOrTestNotification}
+          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all shadow-xs ${
+            notifPermission === "granted"
+              ? "border-emerald-200 bg-emerald-50/80 text-emerald-700 hover:bg-emerald-100/80"
+              : notifPermission === "denied"
+              ? "border-rose-200 bg-rose-50 text-rose-700 hover:bg-rose-100"
+              : "border-indigo-300 bg-indigo-50 text-indigo-700 hover:bg-indigo-100 animate-pulse"
+          }`}
+          title={
+            notifPermission === "granted"
+              ? "Chrome alerts active! Click to test popup & sound."
+              : notifPermission === "denied"
+              ? "Chrome notifications blocked. Click for instructions to unblock."
+              : "Click to enable Chrome popup notifications for new print orders!"
+          }
         >
-          {testedAudio ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Volume2 className="w-3.5 h-3.5 text-indigo-600" />}
-          <span className="hidden sm:inline">{testedAudio ? "Chime Played!" : "Test Chime"}</span>
+          {notifPermission === "granted" ? (
+            testedAudio ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <BellRing className="w-3.5 h-3.5 text-emerald-600" />
+          ) : notifPermission === "denied" ? (
+            <BellOff className="w-3.5 h-3.5 text-rose-600" />
+          ) : (
+            <Bell className="w-3.5 h-3.5 text-indigo-600" />
+          )}
+          <span>
+            {notifPermission === "granted"
+              ? (testedAudio ? "Chime & Popup Sent!" : "Chrome Alerts: On")
+              : notifPermission === "denied"
+              ? "Alerts Blocked"
+              : "Enable Chrome Popups"}
+          </span>
         </button>
 
         {/* Shopkeeper Profile Card */}

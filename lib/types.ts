@@ -82,6 +82,8 @@ export interface OrderFileItem {
   page_range: string; // e.g. "all", "1-3,5"
   effective_pages: number; // pages in range
   printer_id?: string;
+  printer_name?: string;
+  printer?: Printer;
   price: number;
   status?: string;
 }

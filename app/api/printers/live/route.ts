@@ -60,44 +60,80 @@ export async function GET(req: NextRequest) {
           }
         }
 
-        // Filter out virtual/utility printers (OneNote, XPS, Fax, AnyDesk, PDF)
-        const IGNORED = ["onenote", "xps", "fax", "anydesk", "print to pdf", "root print queue"];
+        // Only keep Brother and Canon printers
+        const ALLOWED_KEYWORDS = ["canon", "cannon", "brother", "mf3010", "t220"];
         const filtered = merged
           .filter((p) => {
             const name = (p.display_name + " " + p.system_name).toLowerCase();
-            return !IGNORED.some((ig) => name.includes(ig));
+            return ALLOWED_KEYWORDS.some((kw) => name.includes(kw));
           })
           .map((p) => {
-            // Ensure shop network printers default to online
             const name = (p.display_name + " " + p.system_name).toLowerCase();
-            if (name.includes("canon") || name.includes("brother") || name.includes("mf3010") || name.includes("t220")) {
-              return { ...p, status: "online" };
-            }
-            return p;
+            const isCanon = name.includes("canon") || name.includes("cannon") || name.includes("mf3010");
+            return {
+              ...p,
+              type: isCanon ? ("bw" as const) : ("both" as const),
+              status: "online" as const,
+            };
           });
+
+        // Ensure we always have both Canon and Brother represented
+        const hasCanon = filtered.some((p) => (p.display_name + " " + p.system_name).toLowerCase().includes("canon"));
+        const hasBrother = filtered.some((p) => (p.display_name + " " + p.system_name).toLowerCase().includes("brother"));
+
+        const finalPrinters = [...filtered];
+        if (!hasCanon) {
+          finalPrinters.unshift({
+            id: "11111111-1111-1111-1111-111111111111",
+            display_name: "Canon imageCLASS MF3010",
+            system_name: "Canon_MF3010",
+            type: "bw",
+            is_active: true,
+            status: "online",
+          });
+        }
+        if (!hasBrother) {
+          finalPrinters.push({
+            id: "22222222-2222-2222-2222-222222222222",
+            display_name: "Brother DCP-T220",
+            system_name: "Brother_DCP_T220",
+            type: "both",
+            is_active: true,
+            status: "online",
+          });
+        }
 
         return NextResponse.json({
           success: true,
           source: "merged",
-          printers: filtered,
+          printers: finalPrinters.slice(0, 2),
           timestamp: new Date().toISOString(),
         });
       }
     }
 
-    if (livePrinters.length > 0) {
-      return NextResponse.json({
-        success: true,
-        source: "windows-realtime",
-        printers: livePrinters,
-        timestamp: new Date().toISOString(),
-      });
-    }
-
+    // Default 2 printers: Canon (Black & White) and Brother (Color)
     return NextResponse.json({
       success: true,
-      source: "empty",
-      printers: [],
+      source: "default-hardware",
+      printers: [
+        {
+          id: "11111111-1111-1111-1111-111111111111",
+          display_name: "Canon imageCLASS MF3010",
+          system_name: "Canon_MF3010",
+          type: "bw",
+          is_active: true,
+          status: "online",
+        },
+        {
+          id: "22222222-2222-2222-2222-222222222222",
+          display_name: "Brother DCP-T220",
+          system_name: "Brother_DCP_T220",
+          type: "both",
+          is_active: true,
+          status: "online",
+        },
+      ],
       timestamp: new Date().toISOString(),
     });
   } catch (err: any) {
@@ -108,3 +144,62 @@ export async function GET(req: NextRequest) {
     );
   }
 }
+
+export async function POST(req: NextRequest) {
+  try {
+    const body = await req.json();
+    const { printers } = body;
+
+    if (!Array.isArray(printers)) {
+      return NextResponse.json(
+        { success: false, error: "printers array is required" },
+        { status: 400 }
+      );
+    }
+
+    if (!isSupabaseConfigured) {
+      return NextResponse.json(
+        { success: false, error: "Database is not configured" },
+        { status: 500 }
+      );
+    }
+
+    const supabase = getAdminSupabase();
+
+    for (const p of printers) {
+      await supabase
+        .from("printers")
+        .upsert(
+          {
+            id: p.id,
+            display_name: p.display_name,
+            system_name: p.system_name,
+            type: p.type,
+            is_active: p.is_active,
+            status: p.status || "online",
+            updated_at: new Date().toISOString(),
+          },
+          { onConflict: "id" }
+        );
+    }
+
+    // Return refreshed printers
+    const { data: updatedPrinters } = await supabase
+      .from("printers")
+      .select("*")
+      .order("display_name", { ascending: true });
+
+    return NextResponse.json({
+      success: true,
+      message: "Printers updated successfully",
+      printers: updatedPrinters || [],
+    });
+  } catch (err: any) {
+    console.error("POST /api/printers/live error:", err);
+    return NextResponse.json(
+      { success: false, error: err.message },
+      { status: 500 }
+    );
+  }
+}
+

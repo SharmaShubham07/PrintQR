@@ -2,6 +2,9 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminSupabase, isSupabaseConfigured } from "@/lib/supabase";
 import { calculateOrderTotal, calculateFileCost, PricingConfig, DEFAULT_PRICING, parsePricingRows } from "@/lib/price-calculator";
 
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 // In-memory store fallback when running before Supabase keys are configured
 const globalMemoryStore = globalThis as unknown as {
   _mockOrders?: any[];
@@ -60,26 +63,12 @@ export async function POST(req: NextRequest) {
     if (isSupabaseConfigured) {
       const supabase = getAdminSupabase();
 
-      // Check auto-print configuration
-      let isAutoPrint = true;
-      if (autoPrintParam !== null) {
-        isAutoPrint = autoPrintParam === "true";
-      } else {
-        try {
-          const { data: setRes } = await supabase
-            .from("settings")
-            .select("value")
-            .eq("key", "shop_info")
-            .maybeSingle();
-          if (setRes?.value?.auto_print_on_payment !== undefined) {
-            isAutoPrint = Boolean(setRes.value.auto_print_on_payment);
-          }
-        } catch (e) {
-          // default to true
-        }
+      // Payment check: order is only queued/printing if payment was completed online
+      let isPaid = false;
+      if (autoPrintParam === "true") {
+        isPaid = true;
       }
-
-      const initialStatus = isAutoPrint ? "queued" : "payment_pending";
+      const initialStatus = isPaid ? "queued" : "payment_pending";
 
       // 1. Upload any attached screenshot or files to storage bucket
       let screenshotUrl: string | null = null;
@@ -195,7 +184,7 @@ export async function POST(req: NextRequest) {
       });
     }
 
-    const fallbackStatus = autoPrintParam !== "false" ? "queued" : "payment_pending";
+    const fallbackStatus = autoPrintParam === "true" ? "queued" : "payment_pending";
 
     // Fallback store for instant local testing
     const newMockOrder = {

@@ -69,27 +69,15 @@ export default function ShopkeeperCustomerPortal() {
   // Load shop settings
   useEffect(() => {
     async function fetchShopInfo() {
-      if (!isSupabaseConfigured) {
-        if (shopSlug === "heusen" || shopSlug === "saga3") {
-          setShopName("Saga3's Print Shop");
-          setOwnerName("heusen");
-        }
-        return;
-      }
-
       try {
-        const { data } = await supabase
-          .from("settings")
-          .select("value")
-          .eq("key", "shop_info")
-          .maybeSingle();
-
-        if (data?.value) {
-          if (data.value.shop_name) setShopName(data.value.shop_name);
-          if (data.value.owner_name) setOwnerName(data.value.owner_name);
-          if (data.value.tagline) setTagline(data.value.tagline);
-          if (data.value.is_closed !== undefined) setIsShopClosed(Boolean(data.value.is_closed));
-          if (data.value.closed_notice) setClosedNotice(data.value.closed_notice);
+        const res = await fetch("/api/admin/settings");
+        const data = await res.json();
+        if (data?.success && data.settings) {
+          if (data.settings.shop_name) setShopName(data.settings.shop_name);
+          if (data.settings.owner_name) setOwnerName(data.settings.owner_name);
+          if (data.settings.tagline) setTagline(data.settings.tagline);
+          if (data.settings.is_closed !== undefined) setIsShopClosed(Boolean(data.settings.is_closed));
+          if (data.settings.closed_notice) setClosedNotice(data.settings.closed_notice);
         }
       } catch (err) {
         console.error("Shop settings fetch error:", err);

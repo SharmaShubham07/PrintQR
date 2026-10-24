@@ -37,15 +37,25 @@ export default function AdminDashboard() {
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<string>("");
 
+  const [shopInfo, setShopInfo] = useState({
+    shop_name: "Preeti Communication",
+    owner_name: "Preeti Communication",
+    shop_slug: "preeti",
+    is_closed: false,
+  });
+
   const fetchDashboardData = useCallback(async (isManual = false) => {
     if (isManual) setRefreshing(true);
     try {
-      const res = await fetch(`/api/admin/stats?t=${Date.now()}`, { 
-        cache: "no-store",
-        headers: { "Pragma": "no-cache" }
-      });
-      const data = await res.json();
+      const [statsRes, setRes] = await Promise.all([
+        fetch(`/api/admin/stats?t=${Date.now()}`, { 
+          cache: "no-store",
+          headers: { "Pragma": "no-cache" }
+        }),
+        fetch("/api/admin/settings"),
+      ]);
 
+      const data = await statsRes.json();
       if (data.success && data.stats) {
         setStats(data.stats);
         if (Array.isArray(data.recent_orders)) {
@@ -56,6 +66,16 @@ export default function AdminDashboard() {
         }
         const now = new Date();
         setLastUpdated(now.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
+      }
+
+      const setData = await setRes.json();
+      if (setData?.success && setData.settings) {
+        setShopInfo({
+          shop_name: setData.settings.shop_name || "Preeti Communication",
+          owner_name: setData.settings.owner_name || "Preeti Communication",
+          shop_slug: setData.settings.shop_slug || "preeti",
+          is_closed: Boolean(setData.settings.is_closed),
+        });
       }
     } catch (err) {
       console.error("Dashboard data fetch error:", err);
@@ -84,6 +104,9 @@ export default function AdminDashboard() {
         .on("postgres_changes", { event: "*", schema: "public", table: "printers" }, () => {
           fetchDashboardData();
         })
+        .on("postgres_changes", { event: "*", schema: "public", table: "settings" }, () => {
+          fetchDashboardData();
+        })
         .subscribe();
     }
 
@@ -103,11 +126,12 @@ export default function AdminDashboard() {
 
       <div className="flex-1 flex flex-col min-w-0">
         <AdminHeader 
-          title="Saga3's Print Shop | Shopkeeper Overview" 
+          title={`${shopInfo.shop_name} | Shopkeeper Overview`} 
           subtitle="Real-time operations, revenue metrics, and hardware printer readiness"
-          shopName="Saga3's Print Shop"
-          ownerName="heusen"
-          shopSlug="heusen"
+          shopName={shopInfo.shop_name}
+          ownerName={shopInfo.owner_name}
+          shopSlug={shopInfo.shop_slug}
+          isShopClosed={shopInfo.is_closed}
         />
 
         <main className="p-6 space-y-6 flex-1 overflow-y-auto">
@@ -242,45 +266,73 @@ export default function AdminDashboard() {
               </Link>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-              {printers.slice(0, 6).map((printer) => {
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              {(printers.filter((p) => {
+                const name = (p.display_name + " " + p.system_name).toLowerCase();
+                return name.includes("brother") || name.includes("canon") || name.includes("cannon");
+              }).length > 0
+                ? printers.filter((p) => {
+                    const name = (p.display_name + " " + p.system_name).toLowerCase();
+                    return name.includes("brother") || name.includes("canon") || name.includes("cannon");
+                  })
+                : [
+                    {
+                      id: "11111111-1111-1111-1111-111111111111",
+                      display_name: "Canon imageCLASS MF3010",
+                      system_name: "Canon_MF3010",
+                      type: "bw" as const,
+                      status: "online" as const,
+                      is_active: true,
+                    },
+                    {
+                      id: "22222222-2222-2222-2222-222222222222",
+                      display_name: "Brother DCP-T220",
+                      system_name: "Brother_DCP_T220",
+                      type: "both" as const,
+                      status: "online" as const,
+                      is_active: true,
+                    },
+                  ]
+              ).map((printer) => {
                 const isOnline = printer.status === "online";
+                const isColor = (printer.display_name + " " + printer.system_name).toLowerCase().includes("brother") || printer.type === "both" || printer.type === "color";
 
                 return (
                   <div
                     key={printer.id}
-                    className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs flex items-center justify-between"
+                    className="bg-white border-2 border-slate-200 rounded-2xl p-4 shadow-xs flex items-center justify-between"
                   >
                     <div className="flex items-center gap-3 min-w-0 pr-2">
                       <div
                         className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                          isOnline
-                            ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                            : "bg-slate-100 text-slate-400"
+                          isColor
+                            ? "bg-purple-100 text-purple-700 border border-purple-200"
+                            : "bg-slate-900 text-white"
                         }`}
                       >
                         <Printer className="w-5 h-5" />
                       </div>
                       <div className="min-w-0">
-                        <h3 className="font-bold text-slate-900 text-sm truncate">
-                          {printer.display_name}
-                        </h3>
-                        <p className="text-[11px] text-slate-500 font-mono truncate">
-                          {printer.type === "bw" ? "B&W Mono Laser" : "Color & B&W"}
+                        <div className="flex items-center gap-2">
+                          <h3 className="font-bold text-slate-900 text-sm truncate">
+                            {printer.display_name}
+                          </h3>
+                          <span className={`px-2 py-0.5 rounded-full text-[10px] font-black uppercase ${
+                            isColor ? "bg-purple-100 text-purple-800" : "bg-slate-900 text-white"
+                          }`}>
+                            {isColor ? "🌈 Color" : "⚫ B&W"}
+                          </span>
+                        </div>
+                        <p className="text-[11px] text-slate-500 font-mono truncate mt-0.5">
+                          {isColor ? "Brother Color & B&W High Resolution" : "Canon Monochrome Laser"}
                         </p>
                       </div>
                     </div>
                     <div className="shrink-0">
-                      {isOnline ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
-                          <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
-                          Online
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-slate-100 text-slate-500 border border-slate-200">
-                          Offline
-                        </span>
-                      )}
+                      <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-700 border border-emerald-200">
+                        <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                        Online
+                      </span>
                     </div>
                   </div>
                 );
@@ -348,10 +400,21 @@ export default function AdminDashboard() {
                             <div className="text-slate-400 text-[11px]">{ord.customer_phone}</div>
                           </td>
                           <td className="py-3 px-4">
-                            <span className="font-semibold text-slate-700">
-                              {ord.files?.length || 1} file(s)
-                            </span>
-                            <div className="text-[11px] text-slate-400 truncate max-w-xs">
+                            <div className="flex items-center gap-1.5 flex-wrap">
+                              <span className="font-bold text-slate-800">
+                                {ord.files?.length || 1} file(s)
+                              </span>
+                              {ord.files?.some((f) => f.color_mode === "color") ? (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-xs">
+                                  🌈 Brother Color
+                                </span>
+                              ) : (
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-900 text-white shadow-xs">
+                                  ⚫ Canon B&amp;W
+                                </span>
+                              )}
+                            </div>
+                            <div className="text-[11px] text-slate-400 truncate max-w-xs mt-0.5">
                               {ord.files?.map((f) => f.file_name).join(", ")}
                             </div>
                           </td>
@@ -366,13 +429,14 @@ export default function AdminDashboard() {
                                   : isQueued
                                   ? "bg-indigo-50 text-indigo-700 border border-indigo-200"
                                   : isPending
-                                  ? "bg-amber-50 text-amber-700 border border-amber-200"
+                                  ? "bg-amber-100 text-amber-900 border border-amber-300 font-black animate-pulse"
                                   : "bg-slate-100 text-slate-700 border border-slate-200"
                               }`}
                             >
-                              {isQueued && <Zap className="w-3 h-3 text-indigo-600 animate-pulse" />}
-                              {isCompleted && <CheckCircle className="w-3 h-3 text-emerald-600" />}
-                              <span>{ord.status}</span>
+                              {isPending && "⚠️ Payment Pending"}
+                              {isQueued && "📋 Paid & In Queue"}
+                              {isCompleted && "✅ Completed"}
+                              {!isPending && !isQueued && !isCompleted && ord.status}
                             </span>
                           </td>
                           <td className="py-3 px-4 text-slate-500 text-[11px] font-mono">

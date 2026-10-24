@@ -30,14 +30,10 @@ export default function AdminSettingsPage() {
   useEffect(() => {
     async function loadSettings() {
       try {
-        const { data: setRes } = await supabase
-          .from("settings")
-          .select("value")
-          .eq("key", "shop_info")
-          .maybeSingle();
-
-        if (setRes?.value) {
-          setSettings((prev) => ({ ...prev, ...setRes.value }));
+        const res = await fetch("/api/admin/settings");
+        const data = await res.json();
+        if (data.success && data.settings) {
+          setSettings((prev) => ({ ...prev, ...data.settings }));
         }
       } catch (err) {
         console.error("Error loading settings:", err);
@@ -50,18 +46,22 @@ export default function AdminSettingsPage() {
     e.preventDefault();
     setSaving(true);
     try {
-      await supabase
-        .from("settings")
-        .upsert({
-          key: "shop_info",
-          value: settings,
-          updated_at: new Date().toISOString()
-        });
+      const res = await fetch("/api/admin/settings", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(settings),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to save settings");
+      }
 
       setSaved(true);
       setTimeout(() => setSaved(false), 2500);
-    } catch (err) {
+    } catch (err: any) {
       console.error("Error saving settings:", err);
+      alert("Failed to save settings: " + (err.message || "Unknown error"));
     } finally {
       setSaving(false);
     }
@@ -87,16 +87,14 @@ export default function AdminSettingsPage() {
 
           <form onSubmit={handleSave} className="space-y-6">
             {/* Emergency Shop Closed Toggle */}
-            <div className={`border rounded-3xl p-6 transition-all ${
-              settings.is_closed 
-                ? "bg-rose-50 border-rose-300 ring-2 ring-rose-500/20" 
+            <div className={`border rounded-3xl p-6 transition-all ${settings.is_closed
+                ? "bg-rose-50 border-rose-300 ring-2 ring-rose-500/20"
                 : "bg-white border-slate-200 shadow-xs"
-            }`}>
+              }`}>
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className={`w-11 h-11 rounded-2xl flex items-center justify-center ${
-                    settings.is_closed ? "bg-rose-100 text-rose-600" : "bg-slate-100 text-slate-600"
-                  }`}>
+                  <div className={`w-11 h-11 rounded-2xl flex items-center justify-center ${settings.is_closed ? "bg-rose-100 text-rose-600" : "bg-slate-100 text-slate-600"
+                    }`}>
                     <ShieldAlert className="w-6 h-6" />
                   </div>
                   <div>

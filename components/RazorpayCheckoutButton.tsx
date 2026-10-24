@@ -2,7 +2,7 @@
 
 import React, { useState } from "react";
 import { loadRazorpayScript } from "@/lib/razorpay-client";
-import { CreditCard, Loader2, AlertCircle, CheckCircle } from "lucide-react";
+import { QrCode, Smartphone, Loader2, AlertCircle, CheckCircle } from "lucide-react";
 
 interface RazorpayCheckoutButtonProps {
   amount: number; // in Rupees (e.g. 10.50)
@@ -93,9 +93,38 @@ export default function RazorpayCheckoutButton({
         amount: orderData.amount,
         currency: orderData.currency || "INR",
         name: "Preeti Communication",
-        description: `Order #${orderNumber}`,
+        description: `Order #${orderNumber} (UPI & QR Payment)`,
         image: "/favicon.ico",
         order_id: orderData.order_id,
+        // Restrict payment methods strictly to UPI Apps and QR Code only
+        method: {
+          netbanking: false,
+          card: false,
+          wallet: false,
+          emi: false,
+          paylater: false,
+          upi: true,
+          bank_transfer: false,
+        },
+        config: {
+          display: {
+            blocks: {
+              upi: {
+                name: "Pay using UPI or QR Code",
+                instruments: [
+                  {
+                    method: "upi",
+                    flows: ["qr", "intent", "collect"],
+                  },
+                ],
+              },
+            },
+            sequence: ["block.upi"],
+            preferences: {
+              show_default_blocks: false,
+            },
+          },
+        },
         handler: async function (response: {
           razorpay_payment_id: string;
           razorpay_order_id: string;
@@ -192,9 +221,9 @@ export default function RazorpayCheckoutButton({
           </>
         ) : (
           <>
-            <CreditCard className="w-5 h-5" />
+            <QrCode className="w-5 h-5 text-indigo-200" />
             <span>
-              {buttonText || `Pay ₹${amount.toFixed(2)} with Razorpay`}
+              {buttonText || `Pay ₹${amount.toFixed(2)} via UPI / QR`}
             </span>
           </>
         )}

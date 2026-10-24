@@ -2,47 +2,36 @@
 
 import React from "react";
 import { ColorMode, Printer } from "@/lib/types";
-import { Printer as PrinterIcon, Check, AlertTriangle, Sparkles, RefreshCw, Zap } from "lucide-react";
+import { Printer as PrinterIcon, Check, Sparkles, RefreshCw } from "lucide-react";
 
 interface Props {
   selectedPrinterId?: string;
   colorMode: ColorMode;
-  onSelectPrinter: (printerId: string) => void;
+  onSelectPrinter: (printerId: string, targetColorMode?: ColorMode) => void;
   printers?: Printer[];
   onRefresh?: () => void;
   isRefreshing?: boolean;
 }
 
-// Virtual/utility printers that should never appear in the customer UI
-const VIRTUAL_PRINTER_KEYWORDS = [
-  "microsoft print to pdf",
-  "print to pdf",
-  "fax",
-  "onenote",
-  "anydesk",
-  "xps document writer",
-  "root print queue",
-  "send to onenote",
-];
+export const CANON_PRINTER: Printer = {
+  id: "11111111-1111-1111-1111-111111111111",
+  display_name: "Canon imageCLASS MF3010",
+  system_name: "Canon_MF3010",
+  type: "bw",
+  is_active: true,
+  status: "online",
+};
 
-export const DEFAULT_PRINTERS: Printer[] = [
-  {
-    id: "11111111-1111-1111-1111-111111111111",
-    display_name: "Canon imageCLASS MF3010",
-    system_name: "Canon_MF3010",
-    type: "bw",
-    is_active: true,
-    status: "online",
-  },
-  {
-    id: "22222222-2222-2222-2222-222222222222",
-    display_name: "Brother DCP-T220",
-    system_name: "Brother_DCP_T220",
-    type: "both",
-    is_active: true,
-    status: "online",
-  },
-];
+export const BROTHER_PRINTER: Printer = {
+  id: "22222222-2222-2222-2222-222222222222",
+  display_name: "Brother DCP-T220",
+  system_name: "Brother_DCP_T220",
+  type: "both",
+  is_active: true,
+  status: "online",
+};
+
+export const DEFAULT_PRINTERS: Printer[] = [CANON_PRINTER, BROTHER_PRINTER];
 
 export default function PrinterSelector({
   selectedPrinterId,
@@ -52,20 +41,40 @@ export default function PrinterSelector({
   onRefresh,
   isRefreshing = false,
 }: Props) {
-  // Filter out virtual/utility printers — only show real hardware printers
-  const realPrinters = printers.filter((p) => {
-    const name = (p.display_name || p.system_name || "").toLowerCase();
-    return !VIRTUAL_PRINTER_KEYWORDS.some((kw) => name.includes(kw));
-  });
+  // Find Canon and Brother from available list, or fall back to defaults
+  const detectedCanon = printers.find((p) => {
+    const name = ((p.display_name || "") + " " + (p.system_name || "")).toLowerCase();
+    return name.includes("canon") || name.includes("cannon") || name.includes("mf3010");
+  }) || CANON_PRINTER;
 
-  // Sort online printers first
-  const sortedPrinters = [...realPrinters].sort((a, b) => {
-    if (a.status === "online" && b.status !== "online") return -1;
-    if (a.status !== "online" && b.status === "online") return 1;
-    return a.display_name.localeCompare(b.display_name);
-  });
+  const detectedBrother = printers.find((p) => {
+    const name = ((p.display_name || "") + " " + (p.system_name || "")).toLowerCase();
+    return name.includes("brother") || name.includes("t220");
+  }) || BROTHER_PRINTER;
 
-  const onlineCount = realPrinters.filter((p) => p.status === "online").length;
+  // STRICT RULE: Only show two printers: Canon (Black & White) and Brother (Color)
+  const onlyTwoPrinters = [
+    {
+      ...detectedCanon,
+      display_name: "Canon imageCLASS MF3010",
+      type: "bw" as const,
+      status: "online" as const,
+      mode: "bw" as ColorMode,
+      modeLabel: "Black & White (B&W)",
+      description: "High Speed Monochrome Laser Printer",
+      tagText: "⚫ Black & White Only",
+    },
+    {
+      ...detectedBrother,
+      display_name: "Brother DCP-T220",
+      type: "both" as const,
+      status: "online" as const,
+      mode: "color" as ColorMode,
+      modeLabel: "Full Color",
+      description: "High Resolution Vibrant Color Printer",
+      tagText: "🌈 Full Color Print",
+    },
+  ];
 
   return (
     <div className="space-y-3">
@@ -77,9 +86,9 @@ export default function PrinterSelector({
             <span className="relative inline-flex rounded-full h-2 w-2 bg-emerald-500"></span>
           </span>
           <span className="text-xs font-semibold text-slate-700">
-            Real-Time Hardware:{" "}
+            Hardware Printers:{" "}
             <span className="text-emerald-700 font-bold">
-              {onlineCount} {onlineCount === 1 ? "Printer" : "Printers"} Ready
+              2 Printers Live (Canon &amp; Brother)
             </span>
           </span>
         </div>
@@ -97,97 +106,88 @@ export default function PrinterSelector({
         )}
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        {sortedPrinters.map((printer) => {
-          const isOnline = printer.status === "online";
-          const isBwOnly = printer.type === "bw";
-          const isColorDisabled = isBwOnly && colorMode === "color";
-          const isSelected = selectedPrinterId === printer.id;
-          const isDisabled = !isOnline || isColorDisabled;
+      {/* Exactly 2 Printer Cards: Canon & Brother */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+        {onlyTwoPrinters.map((printer) => {
+          const isColor = printer.mode === "color";
+          // Selected if ID matches, or synchronized with colorMode
+          const isSelected = selectedPrinterId === printer.id || (selectedPrinterId ? false : colorMode === printer.mode);
 
           return (
             <div
               key={printer.id}
               onClick={() => {
-                if (!isDisabled) {
-                  onSelectPrinter(printer.id);
-                }
+                // When selecting Brother -> Color; when selecting Canon -> Black & White
+                onSelectPrinter(printer.id, printer.mode);
               }}
-              className={`relative border rounded-2xl p-4 transition-all duration-200 select-none ${
-                !isOnline
-                  ? "bg-slate-50/80 border-slate-200 opacity-60 cursor-not-allowed"
-                  : isColorDisabled
-                  ? "bg-slate-100/70 border-slate-200 opacity-60 cursor-not-allowed"
-                  : isSelected
-                  ? "border-indigo-600 bg-indigo-50/50 ring-2 ring-indigo-500/20 cursor-pointer shadow-sm"
-                  : "border-slate-200 hover:border-slate-300 bg-white hover:bg-slate-50/50 cursor-pointer"
+              className={`relative border-2 rounded-2xl p-4 transition-all duration-200 cursor-pointer select-none ${
+                isSelected
+                  ? isColor
+                    ? "border-purple-600 bg-purple-50/60 ring-2 ring-purple-500/25 shadow-md"
+                    : "border-slate-900 bg-slate-50/80 ring-2 ring-slate-800/20 shadow-md"
+                  : "border-slate-200 hover:border-slate-400 bg-white hover:bg-slate-50/60 shadow-xs"
               }`}
             >
               <div className="flex items-start justify-between gap-2">
                 <div className="flex items-center gap-3 min-w-0">
                   <div
-                    className={`w-10 h-10 rounded-xl flex items-center justify-center shrink-0 ${
-                      isSelected && isOnline
-                        ? "bg-indigo-600 text-white shadow-sm"
-                        : isOnline
-                        ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
-                        : "bg-slate-100 text-slate-400"
+                    className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                      isSelected
+                        ? isColor
+                          ? "bg-gradient-to-tr from-purple-600 to-indigo-600 text-white shadow-sm"
+                          : "bg-slate-900 text-white shadow-sm"
+                        : isColor
+                        ? "bg-purple-100 text-purple-700 border border-purple-200"
+                        : "bg-slate-100 text-slate-700 border border-slate-200"
                     }`}
                   >
                     <PrinterIcon className="w-5 h-5" />
                   </div>
                   <div className="min-w-0">
-                    <h5 className="font-bold text-slate-800 text-sm leading-tight truncate">
-                      {printer.display_name}
-                    </h5>
+                    <div className="flex items-center gap-1.5 flex-wrap">
+                      <h5 className="font-extrabold text-slate-900 text-sm leading-tight truncate">
+                        {printer.display_name}
+                      </h5>
+                    </div>
                     <p className="text-[11px] text-slate-500 mt-0.5 truncate">
-                      {isBwOnly ? "Mono Laser (High Speed)" : "Color & B&W High Resolution"}
+                      {printer.description}
                     </p>
                   </div>
                 </div>
 
-                {isSelected && !isDisabled && (
-                  <span className="w-5 h-5 rounded-full bg-indigo-600 text-white flex items-center justify-center shrink-0">
+                {isSelected ? (
+                  <span
+                    className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-white shadow-xs ${
+                      isColor ? "bg-purple-600" : "bg-slate-900"
+                    }`}
+                  >
                     <Check className="w-3.5 h-3.5 stroke-[3]" />
                   </span>
+                ) : (
+                  <span className="w-6 h-6 rounded-full border border-slate-300 flex items-center justify-center shrink-0 text-slate-300">
+                    <span className="w-2 h-2 rounded-full bg-transparent"></span>
+                  </span>
                 )}
               </div>
 
-              {/* Status and Capability Tags */}
-              <div className="mt-3 flex items-center justify-between pt-2 border-t border-slate-100 text-[11px]">
+              {/* Status and Mode Capability Tags */}
+              <div className="mt-3 flex items-center justify-between pt-2.5 border-t border-slate-100 text-[11px]">
                 <span
-                  className={`inline-flex items-center gap-1 font-semibold px-2 py-0.5 rounded-full ${
-                    isBwOnly
-                      ? "bg-slate-100 text-slate-700"
-                      : "bg-purple-100 text-purple-700"
+                  className={`inline-flex items-center gap-1 font-bold px-2.5 py-0.5 rounded-full ${
+                    isColor
+                      ? "bg-gradient-to-r from-purple-100 to-pink-100 text-purple-800 border border-purple-200"
+                      : "bg-slate-900 text-white shadow-xs"
                   }`}
                 >
-                  {!isBwOnly && <Sparkles className="w-3 h-3 text-purple-600" />}
-                  {isBwOnly ? "B&W Only" : "Colour & B&W"}
+                  {isColor && <Sparkles className="w-3 h-3 text-purple-600" />}
+                  {printer.tagText}
                 </span>
 
-                {isOnline ? (
-                  <span className="inline-flex items-center gap-1 text-emerald-700 font-bold">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                    Live Connected
-                  </span>
-                ) : (
-                  <span className="inline-flex items-center gap-1 text-slate-400 font-medium">
-                    <span className="w-2 h-2 rounded-full bg-slate-300"></span>
-                    Offline
-                  </span>
-                )}
+                <span className="inline-flex items-center gap-1.5 text-emerald-700 font-bold">
+                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                  Online Ready
+                </span>
               </div>
-
-              {/* Notice if color mode selected for B&W printer */}
-              {isColorDisabled && (
-                <div className="mt-2.5 flex items-start gap-1.5 p-2 bg-amber-50 border border-amber-200 rounded-xl text-[11px] text-amber-800">
-                  <AlertTriangle className="w-3.5 h-3.5 shrink-0 text-amber-600 mt-0.5" />
-                  <span>
-                    This printer only prints Black & White. Choose a colour printer above.
-                  </span>
-                </div>
-              )}
             </div>
           );
         })}
