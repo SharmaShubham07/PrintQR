@@ -58,8 +58,8 @@ export default function PaymentSection({
   const t = translations[language];
   const cleanAmount = amount.toFixed(2);
 
-  // Payment Tabs: "razorpay" | "upi_qr" | "cash" | "test"
-  const [activeTab, setActiveTab] = useState<"razorpay" | "upi_qr" | "cash" | "test">("razorpay");
+  // Payment Tabs: "razorpay" | "upi_qr" | "cash"
+  const [activeTab, setActiveTab] = useState<"razorpay" | "upi_qr" | "cash">("razorpay");
 
   // UPI QR state
   const [upiQrData, setUpiQrData] = useState<string>("");
@@ -119,12 +119,6 @@ export default function PaymentSection({
     onSubmitPayment(cashRef, undefined, false);
   };
 
-  // Instant Test Completed Payment (Done)
-  const handleTestSubmit = () => {
-    const testRef = `TEST-PAID-${Math.floor(100000 + Math.random() * 900000)}`;
-    onSubmitPayment(testRef, undefined, true);
-  };
-
   return (
     <div className="space-y-6 max-w-lg mx-auto">
       {/* Header */}
@@ -137,12 +131,12 @@ export default function PaymentSection({
           Choose How to Pay
         </h3>
         <p className="text-xs text-slate-500 max-w-sm mx-auto">
-          Pay online via Razorpay, scan UPI QR, pay cash, or use instant Test Done payment
+          Pay online via UPI or Dynamic QR, direct UPI transfer, or cash at counter
         </p>
       </div>
 
       {/* Payment Method Switcher Tabs */}
-      <div className="grid grid-cols-2 sm:grid-cols-4 gap-1.5 bg-slate-100 p-1.5 rounded-2xl border border-slate-200 text-xs font-bold">
+      <div className="grid grid-cols-3 gap-1.5 bg-slate-100 p-1.5 rounded-2xl border border-slate-200 text-xs font-bold">
         <button
           type="button"
           onClick={() => setActiveTab("razorpay")}
@@ -180,19 +174,6 @@ export default function PaymentSection({
         >
           <Banknote className="w-4 h-4" />
           <span className="truncate">Pay Cash</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={() => setActiveTab("test")}
-          className={`py-2 px-1.5 rounded-xl transition-all flex flex-col items-center justify-center gap-1 ${
-            activeTab === "test"
-              ? "bg-emerald-600 text-white shadow-sm"
-              : "bg-emerald-50 text-emerald-800 hover:bg-emerald-100 border border-emerald-200"
-          }`}
-        >
-          <Zap className="w-4 h-4" />
-          <span className="truncate font-black">Test Paid</span>
         </button>
       </div>
 
@@ -424,43 +405,6 @@ export default function PaymentSection({
           >
             <span>{isSubmitting ? "Placing Order..." : `Place Order (Pay ₹${cleanAmount} in Cash)`}</span>
             <ArrowRight className="w-4 h-4" />
-          </button>
-        </div>
-      )}
-
-      {/* TAB 4: SIMULATE 100% COMPLETED PAYMENT (FOR TESTING) */}
-      {activeTab === "test" && (
-        <div className="bg-gradient-to-br from-slate-900 via-emerald-950 to-slate-900 border border-emerald-500/40 rounded-3xl p-6 sm:p-7 shadow-2xl text-white space-y-6 animate-in fade-in duration-200">
-          <div className="text-center space-y-2">
-            <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 text-emerald-400 border border-emerald-400/30 flex items-center justify-center mx-auto shadow-inner">
-              <CheckCircle2 className="w-6 h-6 text-emerald-400" />
-            </div>
-            <h3 className="text-lg font-black text-white">
-              Simulate 100% Completed Payment
-            </h3>
-            <p className="text-xs text-slate-300 max-w-sm mx-auto">
-              Testing Mode: Instantly verifies ₹{cleanAmount} payment and dispatches your order as <strong>PAID &amp; READY TO PRINT</strong> in the admin panel.
-            </p>
-          </div>
-
-          <div className="p-3.5 bg-emerald-900/40 border border-emerald-500/30 rounded-2xl text-xs text-emerald-200 space-y-1">
-            <div className="font-bold flex items-center gap-1.5 text-emerald-300">
-              <Zap className="w-4 h-4 fill-emerald-300" />
-              <span>Instant Verified Payment Simulation</span>
-            </div>
-            <p className="text-[11px] text-emerald-200/80">
-              Generates a verified transaction receipt and sends order directly to the live queue for printing.
-            </p>
-          </div>
-
-          <button
-            type="button"
-            disabled={isSubmitting}
-            onClick={handleTestSubmit}
-            className="w-full py-4 px-6 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black rounded-2xl shadow-lg shadow-emerald-500/25 active:scale-[0.99] transition-all flex items-center justify-center gap-2 text-sm disabled:opacity-60 cursor-pointer"
-          >
-            <Check className="w-4 h-4 stroke-[3]" />
-            <span>{isSubmitting ? "Processing Test Order..." : `Simulate Payment Done (₹${cleanAmount})`}</span>
           </button>
         </div>
       )}
