@@ -106,86 +106,100 @@ export default function PrinterSelector({
         )}
       </div>
 
-      {/* Exactly 2 Printer Cards: Canon & Brother */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5">
+      {/* Exactly 2 Printer Cards: Canon & Brother with Neo-Pop Styling */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
         {onlyTwoPrinters.map((printer) => {
           const isColor = printer.mode === "color";
-          // Selected if ID matches, or synchronized with colorMode
           const isSelected = selectedPrinterId === printer.id || (selectedPrinterId ? false : colorMode === printer.mode);
 
           return (
             <div
               key={printer.id}
               onClick={() => {
-                // When selecting Brother -> Color; when selecting Canon -> Black & White
                 onSelectPrinter(printer.id, printer.mode);
               }}
-              className={`relative border-2 rounded-2xl p-4 transition-all duration-200 cursor-pointer select-none ${
+              className={`relative border-2 border-slate-900 rounded-3xl p-5 transition-all duration-200 cursor-pointer select-none ${
                 isSelected
                   ? isColor
-                    ? "border-purple-600 bg-purple-50/60 ring-2 ring-purple-500/25 shadow-md"
-                    : "border-slate-900 bg-slate-50/80 ring-2 ring-slate-800/20 shadow-md"
-                  : "border-slate-200 hover:border-slate-400 bg-white hover:bg-slate-50/60 shadow-xs"
+                    ? "bg-gradient-to-br from-purple-900 via-indigo-950 to-slate-950 text-white shadow-[5px_5px_0px_0px_#ec4899] rotate-0.5 scale-[1.01]"
+                    : "bg-slate-900 text-white shadow-[5px_5px_0px_0px_#f59e0b] -rotate-0.5 scale-[1.01]"
+                  : "bg-white hover:bg-slate-50 text-slate-900 shadow-[3px_3px_0px_0px_#0f172a] hover:shadow-[5px_5px_0px_0px_#0f172a]"
               }`}
             >
+              {/* Corner Sticker Tag */}
+              <div className="absolute -top-3 -right-2">
+                <span className={`sticker-badge text-[10px] font-black ${
+                  isColor
+                    ? "bg-pink-300 text-pink-950 rotate-[3deg]"
+                    : "bg-yellow-300 text-slate-950 rotate-[-2deg]"
+                }`}>
+                  {isColor ? "✨ VIBRANT COLOR" : "⚡ CRISP LASER"}
+                </span>
+              </div>
+
               <div className="flex items-start justify-between gap-2">
-                <div className="flex items-center gap-3 min-w-0">
+                <div className="flex items-center gap-3.5 min-w-0">
                   <div
-                    className={`w-11 h-11 rounded-xl flex items-center justify-center shrink-0 transition-colors ${
+                    className={`w-12 h-12 rounded-2xl border-2 border-slate-900 flex items-center justify-center shrink-0 transition-transform ${
                       isSelected
                         ? isColor
-                          ? "bg-gradient-to-tr from-purple-600 to-indigo-600 text-white shadow-sm"
-                          : "bg-slate-900 text-white shadow-sm"
+                          ? "bg-gradient-to-tr from-pink-500 to-purple-500 text-white shadow-[2px_2px_0px_0px_#fff]"
+                          : "bg-yellow-400 text-slate-950 shadow-[2px_2px_0px_0px_#fff]"
                         : isColor
-                        ? "bg-purple-100 text-purple-700 border border-purple-200"
-                        : "bg-slate-100 text-slate-700 border border-slate-200"
+                        ? "bg-purple-100 text-purple-900 shadow-[2px_2px_0px_0px_#0f172a]"
+                        : "bg-slate-100 text-slate-900 shadow-[2px_2px_0px_0px_#0f172a]"
                     }`}
                   >
-                    <PrinterIcon className="w-5 h-5" />
+                    <PrinterIcon className="w-6 h-6 stroke-[2.5]" />
                   </div>
                   <div className="min-w-0">
-                    <div className="flex items-center gap-1.5 flex-wrap">
-                      <h5 className="font-extrabold text-slate-900 text-sm leading-tight truncate">
-                        {printer.display_name}
-                      </h5>
-                    </div>
-                    <p className="text-[11px] text-slate-500 mt-0.5 truncate">
-                      {printer.description}
+                    <h5 className={`font-black text-base sm:text-lg leading-tight truncate tracking-tight ${
+                      isSelected ? "text-white" : "text-slate-900"
+                    }`}>
+                      {printer.display_name}
+                    </h5>
+                    <p className={`text-xs mt-0.5 font-bold truncate ${
+                      isSelected ? "text-slate-300" : "text-slate-500"
+                    }`}>
+                      {isColor ? "High-res presentation & photos" : "Fast & sharp notes, documents & forms"}
                     </p>
                   </div>
                 </div>
 
                 {isSelected ? (
                   <span
-                    className={`w-6 h-6 rounded-full flex items-center justify-center shrink-0 text-white shadow-xs ${
-                      isColor ? "bg-purple-600" : "bg-slate-900"
+                    className={`w-7 h-7 rounded-full border-2 border-slate-900 flex items-center justify-center shrink-0 text-slate-950 font-black shadow-[2px_2px_0px_0px_#fff] ${
+                      isColor ? "bg-pink-400" : "bg-yellow-400"
                     }`}
                   >
-                    <Check className="w-3.5 h-3.5 stroke-[3]" />
+                    <Check className="w-4 h-4 stroke-[3]" />
                   </span>
                 ) : (
-                  <span className="w-6 h-6 rounded-full border border-slate-300 flex items-center justify-center shrink-0 text-slate-300">
-                    <span className="w-2 h-2 rounded-full bg-transparent"></span>
+                  <span className="w-7 h-7 rounded-full border-2 border-slate-300 flex items-center justify-center shrink-0">
+                    <span className="w-2.5 h-2.5 rounded-full bg-slate-200"></span>
                   </span>
                 )}
               </div>
 
               {/* Status and Mode Capability Tags */}
-              <div className="mt-3 flex items-center justify-between pt-2.5 border-t border-slate-100 text-[11px]">
+              <div className={`mt-4 flex items-center justify-between pt-3 border-t text-[11px] font-bold ${
+                isSelected ? "border-white/15" : "border-slate-200"
+              }`}>
                 <span
-                  className={`inline-flex items-center gap-1 font-bold px-2.5 py-0.5 rounded-full ${
+                  className={`inline-flex items-center gap-1 px-3 py-1 rounded-full border-2 border-slate-900 font-black text-xs ${
                     isColor
-                      ? "bg-gradient-to-r from-purple-100 to-pink-100 text-purple-800 border border-purple-200"
-                      : "bg-slate-900 text-white shadow-xs"
+                      ? "bg-gradient-to-r from-pink-400 to-purple-400 text-slate-950 shadow-[2px_2px_0px_0px_#0f172a]"
+                      : "bg-white text-slate-950 shadow-[2px_2px_0px_0px_#0f172a]"
                   }`}
                 >
-                  {isColor && <Sparkles className="w-3 h-3 text-purple-600" />}
-                  {printer.tagText}
+                  {isColor ? "🌈 Full Color Mode" : "⚫ Black & White Mode"}
                 </span>
 
-                <span className="inline-flex items-center gap-1.5 text-emerald-700 font-bold">
-                  <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
-                  Online Ready
+                <span className={`inline-flex items-center gap-1.5 font-black text-xs ${
+                  isSelected ? "text-emerald-300" : "text-emerald-700"
+                }`}>
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+                  Ready to Print
                 </span>
               </div>
             </div>

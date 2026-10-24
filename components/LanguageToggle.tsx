@@ -17,9 +17,9 @@ export default function LanguageToggle({ currentLanguage, onLanguageChange }: Pr
   ];
 
   return (
-    <div className="inline-flex items-center bg-white/90 backdrop-blur-sm border border-slate-200 rounded-full p-1 shadow-sm">
-      <div className="px-2 text-slate-400">
-        <Globe className="w-4 h-4" />
+    <div className="inline-flex items-center bg-white border-2 border-slate-900 rounded-full p-0.5 shadow-[2px_2px_0px_0px_#0f172a]">
+      <div className="pl-1.5 pr-1 text-slate-700">
+        <Globe className="w-3.5 h-3.5" />
       </div>
       <div className="flex space-x-1">
         {languages.map((lang) => {
@@ -29,10 +29,10 @@ export default function LanguageToggle({ currentLanguage, onLanguageChange }: Pr
               key={lang.code}
               type="button"
               onClick={() => onLanguageChange(lang.code)}
-              className={`px-3 py-1 text-xs font-semibold rounded-full transition-all duration-200 ${
+              className={`px-2.5 py-0.5 text-[11px] font-black rounded-full transition-all duration-150 ${
                 isActive
-                  ? "bg-indigo-600 text-white shadow-sm"
-                  : "text-slate-600 hover:text-indigo-600 hover:bg-slate-100"
+                  ? "bg-slate-900 text-yellow-300 shadow-xs"
+                  : "text-slate-600 hover:text-slate-900"
               }`}
             >
               {lang.native}

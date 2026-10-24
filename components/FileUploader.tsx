@@ -147,7 +147,7 @@ export default function FileUploader({ files, onChange, language, maxSizeMb = 25
         onChange={handleFileSelect}
       />
 
-      {/* Drag & Drop Area */}
+      {/* Doodly Drag & Drop Area */}
       <div
         onDragOver={(e) => {
           e.preventDefault();
@@ -156,57 +156,62 @@ export default function FileUploader({ files, onChange, language, maxSizeMb = 25
         onDragLeave={() => setIsDragging(false)}
         onDrop={handleDrop}
         onClick={() => fileInputRef.current?.click()}
-        className={`border-2 border-dashed rounded-2xl p-6 sm:p-8 text-center cursor-pointer transition-all duration-200 ${
+        className={`relative border-2 border-dashed rounded-3xl p-7 sm:p-9 text-center cursor-pointer transition-all duration-200 group ${
           isDragging
-            ? "border-indigo-600 bg-indigo-50/50 scale-[0.99]"
-            : "border-slate-300 hover:border-indigo-400 bg-slate-50/50 hover:bg-indigo-50/20"
+            ? "border-slate-900 bg-yellow-200/90 scale-[0.99] shadow-[4px_4px_0px_0px_#0f172a]"
+            : "border-slate-900 bg-amber-50/80 hover:bg-yellow-50 hover:shadow-[4px_4px_0px_0px_#0f172a]"
         }`}
       >
-        <div className="w-14 h-14 mx-auto rounded-2xl bg-indigo-100 flex items-center justify-center text-indigo-600 mb-3 shadow-inner">
-          <UploadCloud className="w-7 h-7" />
+        <div className="w-16 h-16 mx-auto rounded-3xl bg-yellow-300 border-2 border-slate-900 flex items-center justify-center text-slate-950 mb-3 shadow-[3px_3px_0px_0px_#0f172a] group-hover:rotate-6 group-hover:scale-105 transition-all">
+          <UploadCloud className="w-8 h-8 stroke-[2.5]" />
         </div>
-        <h4 className="font-semibold text-slate-800 text-base sm:text-lg mb-1">
-          {t.drag_drop_text}
+        <h4 className="font-black text-slate-900 text-lg sm:text-xl mb-1 tracking-tight">
+          Drop your files here, or <span className="underline decoration-indigo-500 decoration-wavy">tap to browse</span>
         </h4>
-        <p className="text-xs sm:text-sm text-slate-500 mb-2">
-          {t.upload_sub}
+        <p className="text-xs sm:text-sm text-slate-600 font-bold mb-3">
+          College notes, assignments, reports, presentation slides or photos
         </p>
-        <span className="inline-block text-[11px] font-medium text-slate-400 bg-white px-2.5 py-1 rounded-full border border-slate-200">
-          {t.max_size_notice}
-        </span>
+        
+        {/* Playful Format Chips */}
+        <div className="flex flex-wrap items-center justify-center gap-1.5 pt-1">
+          <span className="sticker-badge bg-rose-200 text-rose-950 text-[10px]">📄 PDF</span>
+          <span className="sticker-badge bg-sky-200 text-sky-950 text-[10px]">📸 JPG / PNG</span>
+          <span className="sticker-badge bg-emerald-200 text-emerald-950 text-[10px]">📝 DOCX / PPTX</span>
+          <span className="sticker-badge bg-purple-200 text-purple-950 text-[10px]">📦 Up to 25MB</span>
+        </div>
       </div>
 
       {errorNotice && (
-        <div className="flex items-center gap-2 p-3 text-xs sm:text-sm text-rose-700 bg-rose-50 border border-rose-200 rounded-xl">
-          <AlertCircle className="w-4 h-4 shrink-0" />
+        <div className="flex items-center gap-2 p-3.5 text-xs sm:text-sm font-bold text-rose-950 bg-rose-100 border-2 border-slate-900 rounded-2xl shadow-[3px_3px_0px_0px_#0f172a]">
+          <AlertCircle className="w-4 h-4 shrink-0 text-rose-700 stroke-[2.5]" />
           <span>{errorNotice}</span>
         </div>
       )}
 
       {isProcessing && (
-        <div className="flex items-center justify-center gap-2 p-4 text-sm text-indigo-600 font-medium bg-indigo-50 rounded-xl animate-pulse">
-          <span>Analyzing document pages...</span>
+        <div className="flex items-center justify-center gap-2 p-4 text-sm font-black text-indigo-950 bg-indigo-100 border-2 border-slate-900 rounded-2xl shadow-[3px_3px_0px_0px_#0f172a] animate-pulse">
+          <span>✨ Scanning document &amp; counting pages...</span>
         </div>
       )}
 
       {/* Uploaded Files List */}
       {files.length > 0 && (
-        <div className="space-y-2.5">
+        <div className="space-y-3 pt-2">
           <div className="flex items-center justify-between px-1">
-            <span className="text-xs font-bold text-slate-500 uppercase tracking-wider">
-              Uploaded Documents ({files.length})
+            <span className="text-xs font-black text-slate-700 uppercase tracking-wider flex items-center gap-1.5">
+              <span>📚 Ready to Print ({files.length})</span>
             </span>
             <button
               type="button"
               onClick={() => fileInputRef.current?.click()}
-              className="inline-flex items-center gap-1 text-xs font-semibold text-indigo-600 hover:text-indigo-800"
+              className="sticker-badge bg-yellow-300 hover:bg-yellow-400 text-slate-950 text-[11px] cursor-pointer"
             >
-              <Plus className="w-3.5 h-3.5" />
-              {t.add_more_files}
+              <Plus className="w-3.5 h-3.5 stroke-[3]" />
+              <span>Add More Files</span>
             </button>
           </div>
 
-          <div className="space-y-2">
+          <div className="space-y-2.5">
             {files.map((file, idx) => {
               const isPdf = file.file_name.toLowerCase().endsWith(".pdf");
               const isImage = ["jpg", "jpeg", "png", "webp"].some((e) =>
@@ -216,7 +221,7 @@ export default function FileUploader({ files, onChange, language, maxSizeMb = 25
               return (
                 <div
                   key={idx}
-                  className="bg-white border border-slate-200 rounded-xl p-3 sm:p-4 flex items-center justify-between gap-3 shadow-xs hover:border-slate-300 transition-colors"
+                  className="bg-white border-2 border-slate-900 rounded-2xl p-3.5 sm:p-4 flex items-center justify-between gap-3 shadow-[3px_3px_0px_0px_#0f172a] hover:translate-x-0.5 hover:-translate-y-0.5 transition-all"
                 >
                   <div className="flex items-center gap-3 min-w-0">
                     <div className="w-10 h-10 rounded-xl bg-slate-100 flex items-center justify-center shrink-0 text-slate-600">

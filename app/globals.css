@@ -4,28 +4,94 @@
 
 @layer base {
   body {
-    @apply bg-slate-50 text-slate-900 antialiased min-h-screen;
+    @apply text-slate-900 antialiased min-h-screen;
+    background-color: #faf8f5;
+    background-image: 
+      radial-gradient(#cbd5e1 1.25px, transparent 1.25px),
+      radial-gradient(#e2e8f0 1.25px, #faf8f5 1.25px);
+    background-size: 24px 24px;
+    background-position: 0 0, 12px 12px;
     font-feature-settings: "cv02", "cv03", "cv04", "cv11";
   }
 }
 
+/* Doodly Neo-Brutalist & Youngster Design Utilities */
+.neo-card {
+  @apply bg-white border-2 border-slate-900 rounded-3xl transition-all duration-200;
+  box-shadow: 4px 4px 0px 0px #0f172a;
+}
+
+.neo-card-hover {
+  @apply neo-card;
+}
+.neo-card-hover:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0px 0px #0f172a;
+}
+
+.neo-card-sm {
+  @apply bg-white border-2 border-slate-900 rounded-2xl transition-all duration-150;
+  box-shadow: 3px 3px 0px 0px #0f172a;
+}
+
+.neo-btn-primary {
+  @apply bg-indigo-600 hover:bg-indigo-500 text-white font-black border-2 border-slate-900 rounded-2xl transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer;
+  box-shadow: 4px 4px 0px 0px #0f172a;
+}
+.neo-btn-primary:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0px 0px #0f172a;
+}
+
+.neo-btn-accent {
+  @apply bg-amber-400 hover:bg-amber-300 text-slate-950 font-black border-2 border-slate-900 rounded-2xl transition-all duration-150 flex items-center justify-center gap-2 cursor-pointer;
+  box-shadow: 4px 4px 0px 0px #0f172a;
+}
+.neo-btn-accent:active {
+  transform: translate(2px, 2px);
+  box-shadow: 1px 1px 0px 0px #0f172a;
+}
+
+.sticker-badge {
+  @apply inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-black border-2 border-slate-900 transition-transform duration-200 select-none;
+  box-shadow: 2px 2px 0px 0px #0f172a;
+}
+
+.sticker-badge:hover {
+  transform: rotate(-2deg) scale(1.05);
+}
+
+.doodle-dashed {
+  border: 2.5px dashed #0f172a;
+}
+
+/* Wavy squiggly doodle underline */
+.wavy-underline {
+  text-decoration-line: underline;
+  text-decoration-style: wavy;
+  text-decoration-color: #facc15;
+  text-underline-offset: 6px;
+  text-decoration-thickness: 3px;
+}
+
 /* Custom scrollbars */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 8px;
+  height: 8px;
 }
 
 ::-webkit-scrollbar-track {
-  background: transparent;
+  background: #f1f5f9;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
+  background: #94a3b8;
   border-radius: 9999px;
+  border: 2px solid #f1f5f9;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
+  background: #475569;
 }
 
 @keyframes shrink {
@@ -37,3 +103,15 @@
   }
 }
 
+@keyframes float-slow {
+  0%, 100% {
+    transform: translateY(0px) rotate(0deg);
+  }
+  50% {
+    transform: translateY(-6px) rotate(1.5deg);
+  }
+}
+
+.animate-float {
+  animation: float-slow 4s ease-in-out infinite;
+}
