@@ -368,7 +368,7 @@ export default function AdminSettingsPage() {
                     type="password"
                     value={currentPwd}
                     onChange={(e) => setCurrentPwd(e.target.value)}
-                    placeholder="Enter current password (default: Arun@123)"
+                    placeholder="Enter current password"
                     className="w-full px-3 py-2 text-sm font-mono border border-slate-300 rounded-xl outline-none focus:border-indigo-500"
                   />
                 </div>

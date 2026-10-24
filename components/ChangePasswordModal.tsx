@@ -117,7 +117,7 @@ export default function ChangePasswordModal({ isOpen, onClose }: Props) {
                 required
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
-                placeholder="Enter current password (default: Arun@123)"
+                placeholder="Enter current password"
                 className="w-full pl-3.5 pr-10 py-2.5 text-xs font-mono bg-slate-50 border border-slate-200 rounded-xl focus:border-indigo-500 focus:bg-white outline-none"
               />
               <button

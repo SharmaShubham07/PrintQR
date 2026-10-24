@@ -7,7 +7,7 @@ import { Printer, Lock, User, ArrowRight, ShieldCheck, Eye, EyeOff, Sparkles, Ch
 export default function AdminLoginPage() {
   const router = useRouter();
   const [username, setUsername] = useState("preeticommunication");
-  const [password, setPassword] = useState("Arun@123");
+  const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
@@ -92,11 +92,10 @@ export default function AdminLoginPage() {
                 autoComplete="username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                placeholder="preeticommunication"
+                placeholder="Enter username"
                 className="w-full pl-10 pr-4 py-3 text-sm bg-slate-950/70 border border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-white font-medium"
               />
             </div>
-            <p className="text-[10px] text-slate-500 mt-1">Default user: <strong className="text-slate-400">preeticommunication</strong></p>
           </div>
 
           <div>
@@ -121,11 +120,10 @@ export default function AdminLoginPage() {
                 autoComplete="current-password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
+                placeholder="Enter password"
                 className="w-full pl-10 pr-10 py-3 text-sm bg-slate-950/70 border border-slate-700 rounded-xl focus:ring-2 focus:ring-indigo-500 outline-none text-white font-medium"
               />
             </div>
-            <p className="text-[10px] text-slate-500 mt-1">Default password: <strong className="text-slate-400">Arun@123</strong> (Changeable anytime inside)</p>
           </div>
 
           <button
