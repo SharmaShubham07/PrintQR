@@ -3,7 +3,7 @@
 import React, { useState, useEffect } from "react";
 import AdminSidebar from "@/components/AdminSidebar";
 import AdminHeader from "@/components/AdminHeader";
-import { Settings, Save, Check, ShieldAlert, Clock, Phone, MapPin, Trash2, Printer, Zap } from "lucide-react";
+import { Settings, Save, Check, ShieldAlert, Clock, Phone, MapPin, Trash2, Printer, Zap, KeyRound } from "lucide-react";
 import { supabase } from "@/lib/supabase";
 
 export default function AdminSettingsPage() {
@@ -26,6 +26,50 @@ export default function AdminSettingsPage() {
 
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
+
+  // Password change state
+  const [currentPwd, setCurrentPwd] = useState("");
+  const [newPwd, setNewPwd] = useState("");
+  const [pwdLoading, setPwdLoading] = useState(false);
+  const [pwdError, setPwdError] = useState<string | null>(null);
+  const [pwdSuccess, setPwdSuccess] = useState<string | null>(null);
+
+  const handleChangePassword = async () => {
+    setPwdError(null);
+    setPwdSuccess(null);
+    if (!currentPwd || !newPwd) return;
+    if (newPwd.length < 4) {
+      setPwdError("New password must be at least 4 characters long.");
+      return;
+    }
+
+    setPwdLoading(true);
+    try {
+      const res = await fetch("/api/admin/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          action: "change_password",
+          current_password: currentPwd,
+          new_password: newPwd,
+        }),
+      });
+
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || "Failed to update password");
+      }
+
+      setPwdSuccess("Admin password updated successfully! New password is now active.");
+      setCurrentPwd("");
+      setNewPwd("");
+      setTimeout(() => setPwdSuccess(null), 3500);
+    } catch (err: any) {
+      setPwdError(err.message || "Failed to change password");
+    } finally {
+      setPwdLoading(false);
+    }
+  };
 
   useEffect(() => {
     async function loadSettings() {
@@ -285,6 +329,74 @@ export default function AdminSettingsPage() {
                     Protects customer privacy by purging old PDFs automatically
                   </p>
                 </div>
+              </div>
+            </div>
+
+            {/* Admin Security & Password Change */}
+            <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-4">
+              <div className="flex items-center gap-3">
+                <div className="w-11 h-11 rounded-2xl bg-indigo-50 text-indigo-600 flex items-center justify-center shrink-0">
+                  <KeyRound className="w-6 h-6" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-slate-900 text-base">Admin Account &amp; Password</h3>
+                  <p className="text-xs text-slate-500">
+                    Manage login credentials for username <strong className="text-slate-800">preeticommunication</strong>
+                  </p>
+                </div>
+              </div>
+
+              {pwdError && (
+                <div className="p-3 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-xl font-medium">
+                  ⚠️ {pwdError}
+                </div>
+              )}
+
+              {pwdSuccess && (
+                <div className="p-3 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs rounded-xl font-bold flex items-center gap-2">
+                  <Check className="w-4 h-4 text-emerald-600" />
+                  <span>{pwdSuccess}</span>
+                </div>
+              )}
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4 pt-2">
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                    Current Password
+                  </label>
+                  <input
+                    type="password"
+                    value={currentPwd}
+                    onChange={(e) => setCurrentPwd(e.target.value)}
+                    placeholder="Enter current password (default: Arun@123)"
+                    className="w-full px-3 py-2 text-sm font-mono border border-slate-300 rounded-xl outline-none focus:border-indigo-500"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
+                    New Password
+                  </label>
+                  <input
+                    type="password"
+                    value={newPwd}
+                    onChange={(e) => setNewPwd(e.target.value)}
+                    placeholder="Enter new password"
+                    className="w-full px-3 py-2 text-sm font-mono border border-slate-300 rounded-xl outline-none focus:border-indigo-500"
+                  />
+                </div>
+              </div>
+
+              <div className="flex justify-end pt-1">
+                <button
+                  type="button"
+                  onClick={handleChangePassword}
+                  disabled={pwdLoading || !currentPwd || !newPwd}
+                  className="px-5 py-2.5 bg-slate-900 hover:bg-slate-800 text-white font-bold rounded-xl text-xs transition active:scale-95 disabled:opacity-50 flex items-center gap-2 cursor-pointer"
+                >
+                  <KeyRound className="w-4 h-4 text-indigo-400" />
+                  <span>{pwdLoading ? "Updating..." : "Update Admin Password"}</span>
+                </button>
               </div>
             </div>
 

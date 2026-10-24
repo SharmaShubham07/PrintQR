@@ -2,7 +2,9 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Volume2, Bell, Shield, Check, Copy, ExternalLink, QrCode, Sparkles, BellRing, BellOff } from "lucide-react";
+import { Volume2, Bell, Shield, Check, Copy, ExternalLink, QrCode, Sparkles, BellRing, BellOff, KeyRound, LogOut } from "lucide-react";
+import { useRouter } from "next/navigation";
+import ChangePasswordModal from "@/components/ChangePasswordModal";
 import { playNewOrderChime } from "@/lib/audio";
 import { 
   getNotificationPermission, 
@@ -30,11 +32,26 @@ export default function AdminHeader({
   isShopClosed = false,
   onToggleShopClosed
 }: Props) {
+  const router = useRouter();
   const [testedAudio, setTestedAudio] = useState(false);
   const [copiedLink, setCopiedLink] = useState(false);
   const [localClosed, setLocalClosed] = useState(isShopClosed);
   const [isToggling, setIsToggling] = useState(false);
   const [notifPermission, setNotifPermission] = useState<NotificationStatus>("default");
+  const [showPasswordModal, setShowPasswordModal] = useState(false);
+
+  const handleLogout = async () => {
+    try {
+      await fetch("/api/admin/auth", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ action: "logout" }),
+      });
+      router.push("/admin/login");
+    } catch {
+      router.push("/admin/login");
+    }
+  };
 
   useEffect(() => {
     setLocalClosed(isShopClosed);
@@ -172,17 +189,41 @@ export default function AdminHeader({
           </span>
         </button>
 
-        {/* Shopkeeper Profile Card */}
-        <div className="flex items-center gap-2 pl-2 border-l border-slate-200">
+        {/* Shopkeeper Profile Card with Quick Actions */}
+        <div className="relative flex items-center gap-2 pl-2 border-l border-slate-200">
+          <button
+            type="button"
+            onClick={() => setShowPasswordModal(true)}
+            className="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-700 transition shadow-xs cursor-pointer"
+            title="Change Admin Password"
+          >
+            <KeyRound className="w-3.5 h-3.5 text-indigo-600" />
+            <span className="hidden sm:inline">Change Password</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="p-1.5 rounded-xl border border-slate-200 hover:bg-rose-50 hover:text-rose-600 text-slate-500 transition shadow-xs cursor-pointer"
+            title="Log Out of Admin Panel"
+          >
+            <LogOut className="w-3.5 h-3.5" />
+          </button>
+
           <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-600 to-cyan-500 text-white flex items-center justify-center font-black text-xs shadow-xs">
-            {ownerName ? ownerName.charAt(0).toUpperCase() : "S"}
+            {ownerName ? ownerName.charAt(0).toUpperCase() : "P"}
           </div>
           <div className="hidden sm:block text-left">
-            <p className="text-xs font-bold text-slate-800 leading-none">{ownerName || "Shopkeeper"}</p>
+            <p className="text-xs font-bold text-slate-800 leading-none">{ownerName || "Preeti Communication"}</p>
             <p className="text-[10px] text-slate-400 font-medium truncate max-w-[120px]">{shopName}</p>
           </div>
         </div>
       </div>
+
+      <ChangePasswordModal
+        isOpen={showPasswordModal}
+        onClose={() => setShowPasswordModal(false)}
+      />
     </header>
   );
 }

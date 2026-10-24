@@ -554,37 +554,95 @@ export default function CustomerPortal() {
                         <span>{t.color_mode}</span>
                         <span className="text-[10px] font-normal text-slate-400 normal-case">(Auto-selects printer)</span>
                       </label>
-                      <div className="grid grid-cols-2 gap-3">
+                      <div className="grid grid-cols-2 gap-3.5">
+                        {/* Black & White Box */}
                         <button
                           type="button"
                           onClick={() => updateFileOption(activeFileIndex, { color_mode: "bw" })}
-                          className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+                          className={`relative p-4 rounded-2xl text-left transition-all duration-200 cursor-pointer overflow-hidden ${
                             currentFile.color_mode === "bw"
-                              ? "border-indigo-600 bg-indigo-50/50 ring-2 ring-indigo-500/20 text-slate-900 font-bold shadow-xs"
-                              : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                              ? "bg-slate-950 text-white border-2 border-black ring-4 ring-slate-900/15 shadow-xl shadow-slate-950/20 -translate-y-0.5"
+                              : "bg-white text-slate-800 border-2 border-slate-300 hover:border-slate-800 hover:bg-slate-50/80 shadow-xs"
                           }`}
                         >
-                          <div className="text-sm font-bold flex items-center justify-between">
-                            <span>⚫ {t.bw_label}</span>
-                            <span className="text-xs text-indigo-600 font-black">₹{pricing.bw_page}/pg</span>
+                          <div className="flex items-center justify-between gap-1.5">
+                            <span className="text-sm font-black flex items-center gap-1.5">
+                              <span className="text-base">⚫</span>
+                              <span className={currentFile.color_mode === "bw" ? "text-white" : "text-slate-900"}>
+                                {t.bw_label}
+                              </span>
+                            </span>
+                            <span
+                              className={`text-xs font-black px-2.5 py-0.5 rounded-full ${
+                                currentFile.color_mode === "bw"
+                                  ? "bg-white text-slate-950 shadow-xs"
+                                  : "bg-slate-100 text-slate-800 border border-slate-300"
+                              }`}
+                            >
+                              ₹{pricing.bw_page}/pg
+                            </span>
                           </div>
-                          <div className="text-xs text-slate-500 mt-1 font-normal">Assignments, text &amp; notes</div>
+                          <div
+                            className={`text-xs mt-1.5 font-medium ${
+                              currentFile.color_mode === "bw" ? "text-slate-300" : "text-slate-500"
+                            }`}
+                          >
+                            Assignments, text &amp; notes
+                          </div>
+                          {currentFile.color_mode === "bw" && (
+                            <div className="mt-2.5 pt-2 border-t border-slate-800 flex items-center gap-1.5 text-[11px] font-bold text-slate-200">
+                              <span className="w-1.5 h-1.5 rounded-full bg-white animate-pulse"></span>
+                              <span>Active: Monochrome Mode</span>
+                            </div>
+                          )}
                         </button>
 
+                        {/* Full Color Box */}
                         <button
                           type="button"
                           onClick={() => updateFileOption(activeFileIndex, { color_mode: "color" })}
-                          className={`p-4 rounded-2xl border text-left transition-all cursor-pointer ${
+                          className={`relative p-4 rounded-2xl text-left transition-all duration-200 cursor-pointer overflow-hidden ${
                             currentFile.color_mode === "color"
-                              ? "border-pink-600 bg-pink-50/50 ring-2 ring-pink-500/20 text-slate-900 font-bold shadow-xs"
-                              : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50"
+                              ? "bg-gradient-to-br from-pink-500/10 via-purple-500/15 to-amber-500/10 border-2 border-pink-500 ring-4 ring-pink-500/25 shadow-xl shadow-pink-500/15 -translate-y-0.5"
+                              : "bg-gradient-to-br from-pink-50/40 via-purple-50/20 to-white text-slate-800 border-2 border-purple-200 hover:border-pink-400 hover:bg-pink-50/50 shadow-xs"
                           }`}
                         >
-                          <div className="text-sm font-bold flex items-center justify-between">
-                            <span>🌈 {t.color_label}</span>
-                            <span className="text-xs text-pink-600 font-black">₹{pricing.color_page}/pg</span>
+                          <div className="flex items-center justify-between gap-1.5">
+                            <span className="text-sm font-black flex items-center gap-1.5">
+                              <span className="text-base">🌈</span>
+                              <span
+                                className={
+                                  currentFile.color_mode === "color"
+                                    ? "bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600 bg-clip-text text-transparent font-black"
+                                    : "text-purple-950 font-bold"
+                                }
+                              >
+                                {t.color_label}
+                              </span>
+                            </span>
+                            <span
+                              className={`text-xs font-black px-2.5 py-0.5 rounded-full ${
+                                currentFile.color_mode === "color"
+                                  ? "bg-gradient-to-r from-pink-600 via-purple-600 to-indigo-600 text-white shadow-md shadow-pink-500/25"
+                                  : "bg-pink-100 text-pink-700 border border-pink-200"
+                              }`}
+                            >
+                              ₹{pricing.color_page}/pg
+                            </span>
                           </div>
-                          <div className="text-xs text-slate-500 mt-1 font-normal">Diagrams, charts &amp; photos</div>
+                          <div
+                            className={`text-xs mt-1.5 font-medium ${
+                              currentFile.color_mode === "color" ? "text-purple-900 font-semibold" : "text-slate-500"
+                            }`}
+                          >
+                            Diagrams, charts &amp; photos
+                          </div>
+                          {currentFile.color_mode === "color" && (
+                            <div className="mt-2.5 pt-2 border-t border-pink-200/60 flex items-center gap-1.5 text-[11px] font-bold text-pink-700">
+                              <span className="w-1.5 h-1.5 rounded-full bg-pink-500 animate-pulse"></span>
+                              <span>Active: Vibrant Color Mode</span>
+                            </div>
+                          )}
                         </button>
                       </div>
                     </div>

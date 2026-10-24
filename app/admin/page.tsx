@@ -1,9 +1,12 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useMemo } from "react";
 import Link from "next/link";
 import AdminSidebar from "@/components/AdminSidebar";
 import AdminHeader from "@/components/AdminHeader";
+import LiveIncomingOrderSpotlight from "@/components/LiveIncomingOrderSpotlight";
+import DocumentPreviewModal from "@/components/DocumentPreviewModal";
+import { printOrderFile, printOrderSlip } from "@/lib/browser-printer";
 import { 
   TrendingUp, 
   ShoppingBag, 
@@ -16,8 +19,46 @@ import {
   RefreshCw,
   Zap
 } from "lucide-react";
-import { Order, Printer as PrinterType } from "@/lib/types";
+import { Order, OrderFileItem, Printer as PrinterType } from "@/lib/types";
 import { supabase, isSupabaseConfigured } from "@/lib/supabase";
+
+const SAMPLE_DEMO_ORDER: Order = {
+  id: "ord-demo-1",
+  order_number: "PC-3446",
+  token_number: 6,
+  access_token: "tok-demo",
+  customer_name: "Walk-in Customer",
+  customer_phone: "9825100000",
+  status: "queued",
+  total_amount: 13.00,
+  created_at: new Date(Date.now() - 35 * 60000).toISOString(),
+  updated_at: new Date().toISOString(),
+  files: [
+    {
+      id: "f-demo-1",
+      file_name: "WhatsApp Image 2026-09-06 at 10.51.48 PM (1).pdf",
+      file_type: "application/pdf",
+      file_size: 450000,
+      page_count: 1,
+      copies: 1,
+      color_mode: "color",
+      paper_size: "A4",
+      duplex: "single",
+      page_range: "all",
+      effective_pages: 1,
+      price: 13.00,
+      status: "queued",
+      printer: {
+        id: "22222222-2222-2222-2222-222222222222",
+        display_name: "Brother DCP-T220",
+        system_name: "Brother DCP-T220",
+        type: "both",
+        is_active: true,
+        status: "online",
+      },
+    },
+  ],
+};
 
 export default function AdminDashboard() {
   const [stats, setStats] = useState({
@@ -36,6 +77,10 @@ export default function AdminDashboard() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<string>("");
+  const [dismissedSpotlightId, setDismissedSpotlightId] = useState<string | null>(null);
+  const [isPrinting, setIsPrinting] = useState(false);
+  const [previewFile, setPreviewFile] = useState<OrderFileItem | null>(null);
+  const [previewOrder, setPreviewOrder] = useState<Order | null>(null);
 
   const [shopInfo, setShopInfo] = useState({
     shop_name: "Preeti Communication",
@@ -43,6 +88,55 @@ export default function AdminDashboard() {
     shop_slug: "preeti",
     is_closed: false,
   });
+
+  const incomingSpotlightOrder = useMemo(() => {
+    // Look for active queued/pending order first
+    const active = recentOrders.find(
+      (o) => ["payment_pending", "paid", "queued", "printing"].includes(o.status) && o.id !== dismissedSpotlightId
+    );
+    if (active) return active;
+
+    // Otherwise use most recent order if not dismissed
+    if (recentOrders.length > 0 && recentOrders[0].id !== dismissedSpotlightId) {
+      return recentOrders[0];
+    }
+
+    // Fallback to sample demo order if database has no orders yet
+    if (!loading && recentOrders.length === 0 && dismissedSpotlightId !== SAMPLE_DEMO_ORDER.id) {
+      return SAMPLE_DEMO_ORDER;
+    }
+
+    return null;
+  }, [recentOrders, dismissedSpotlightId, loading]);
+
+  const handleExpressPrint = async (order: Order) => {
+    setIsPrinting(true);
+    try {
+      if (order.files && order.files.length > 0) {
+        for (const file of order.files) {
+          await printOrderFile(file, order);
+        }
+      }
+      await printOrderSlip(order);
+    } catch (err) {
+      console.error("Print error:", err);
+    } finally {
+      setIsPrinting(false);
+    }
+  };
+
+  const handlePrintSlip = async (order: Order) => {
+    try {
+      await printOrderSlip(order);
+    } catch (err) {
+      console.error("Print slip error:", err);
+    }
+  };
+
+  const handleOpenPreview = (file: OrderFileItem, order: Order) => {
+    setPreviewFile(file);
+    setPreviewOrder(order);
+  };
 
   const fetchDashboardData = useCallback(async (isManual = false) => {
     if (isManual) setRefreshing(true);
@@ -135,6 +229,18 @@ export default function AdminDashboard() {
         />
 
         <main className="p-6 space-y-6 flex-1 overflow-y-auto">
+          {/* ⚡ LIVE INCOMING ORDER REQUEST - UNIQUE TOP SPOTLIGHT AT START OF DASHBOARD */}
+          {incomingSpotlightOrder && (
+            <LiveIncomingOrderSpotlight
+              order={incomingSpotlightOrder}
+              onDismiss={() => setDismissedSpotlightId(incomingSpotlightOrder.id)}
+              onPreviewFile={handleOpenPreview}
+              onExpressPrint={handleExpressPrint}
+              onPrintSlip={handlePrintSlip}
+              isPrinting={isPrinting}
+            />
+          )}
+
           {/* Quick Status & Manual Refresh Bar */}
           <div className="flex flex-wrap items-center justify-between gap-3 bg-white px-5 py-3 rounded-2xl border border-slate-200 shadow-xs">
             <div className="flex items-center gap-2.5">
@@ -470,6 +576,19 @@ export default function AdminDashboard() {
           </div>
         </main>
       </div>
+
+      <DocumentPreviewModal
+        isOpen={Boolean(previewFile && previewOrder)}
+        onClose={() => {
+          setPreviewFile(null);
+          setPreviewOrder(null);
+        }}
+        file={previewFile}
+        order={previewOrder}
+        onPrint={(file, order) => {
+          printOrderFile(file, order);
+        }}
+      />
     </div>
   );
 }
