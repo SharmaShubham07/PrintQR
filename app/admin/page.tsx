@@ -90,38 +90,78 @@ export default function AdminDashboard() {
   });
 
   const incomingSpotlightOrder = useMemo(() => {
-    // Look for active queued/pending order first
+    // 1. Look for active incoming order needing attention (payment_pending, paid, queued, printing)
     const active = recentOrders.find(
       (o) => ["payment_pending", "paid", "queued", "printing"].includes(o.status) && o.id !== dismissedSpotlightId
     );
     if (active) return active;
 
-    // Otherwise use most recent order if not dismissed
-    if (recentOrders.length > 0 && recentOrders[0].id !== dismissedSpotlightId) {
-      return recentOrders[0];
-    }
-
-    // Fallback to sample demo order if database has no orders yet
-    if (!loading && recentOrders.length === 0 && dismissedSpotlightId !== SAMPLE_DEMO_ORDER.id) {
-      return SAMPLE_DEMO_ORDER;
-    }
+    // 2. If no active pending orders, check if there's a freshly placed order from the last 15 minutes
+    const now = Date.now();
+    const freshOrder = recentOrders.find((o) => {
+      if (o.id === dismissedSpotlightId) return false;
+      if (o.status === "rejected" || o.status === "cancelled") return false;
+      const orderAgeMs = now - new Date(o.created_at).getTime();
+      return orderAgeMs < 15 * 60 * 1000;
+    });
+    if (freshOrder) return freshOrder;
 
     return null;
-  }, [recentOrders, dismissedSpotlightId, loading]);
+  }, [recentOrders, dismissedSpotlightId]);
+
+  const updateOrderStatus = async (orderId: string, status: string, rejectionReason?: string) => {
+    try {
+      const res = await fetch(`/api/orders/${orderId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ status, rejection_reason: rejectionReason }),
+      });
+      if (res.ok) {
+        setRecentOrders((prev) =>
+          prev.map((o) => (o.id === orderId ? { ...o, status: status as any, rejection_reason: rejectionReason } : o))
+        );
+      }
+    } catch (err) {
+      console.error("Failed to update status:", err);
+    }
+  };
 
   const handleExpressPrint = async (order: Order) => {
     setIsPrinting(true);
     try {
+      // 1. Mark printing in database
+      await updateOrderStatus(order.id, "printing");
+
+      // 2. Print all attached files
       if (order.files && order.files.length > 0) {
         for (const file of order.files) {
           await printOrderFile(file, order);
         }
       }
+
+      // 3. Print receipt slip
       await printOrderSlip(order);
+
+      // 4. Mark completed in database
+      await updateOrderStatus(order.id, "completed");
+
+      // 5. Dismiss this order so next in queue shows up
+      setDismissedSpotlightId(order.id);
+
+      // 6. Refresh stats & orders
+      await fetchDashboardData();
     } catch (err) {
       console.error("Print error:", err);
     } finally {
       setIsPrinting(false);
+    }
+  };
+
+  const handleDecline = async (order: Order) => {
+    if (typeof window !== "undefined" && window.confirm(`Decline and reject order #${order.order_number} for ${order.customer_name || "Customer"}?`)) {
+      await updateOrderStatus(order.id, "rejected", "Declined by shopkeeper");
+      setDismissedSpotlightId(order.id);
+      await fetchDashboardData();
     }
   };
 
@@ -141,13 +181,10 @@ export default function AdminDashboard() {
   const fetchDashboardData = useCallback(async (isManual = false) => {
     if (isManual) setRefreshing(true);
     try {
-      const [statsRes, setRes] = await Promise.all([
-        fetch(`/api/admin/stats?t=${Date.now()}`, { 
-          cache: "no-store",
-          headers: { "Pragma": "no-cache" }
-        }),
-        fetch("/api/admin/settings"),
-      ]);
+      const statsRes = await fetch(`/api/admin/stats?t=${Date.now()}`, { 
+        cache: "no-store",
+        headers: { "Pragma": "no-cache", "Cache-Control": "no-cache" }
+      });
 
       const data = await statsRes.json();
       if (data.success && data.stats) {
@@ -161,16 +198,6 @@ export default function AdminDashboard() {
         const now = new Date();
         setLastUpdated(now.toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit", second: "2-digit" }));
       }
-
-      const setData = await setRes.json();
-      if (setData?.success && setData.settings) {
-        setShopInfo({
-          shop_name: setData.settings.shop_name || "Preeti Communication",
-          owner_name: setData.settings.owner_name || "Preeti Communication",
-          shop_slug: setData.settings.shop_slug || "preeti",
-          is_closed: Boolean(setData.settings.is_closed),
-        });
-      }
     } catch (err) {
       console.error("Dashboard data fetch error:", err);
     } finally {
@@ -179,6 +206,23 @@ export default function AdminDashboard() {
         setTimeout(() => setRefreshing(false), 300);
       }
     }
+  }, []);
+
+  // Fetch shop settings once on mount
+  useEffect(() => {
+    fetch("/api/admin/settings")
+      .then((r) => r.json())
+      .then((setData) => {
+        if (setData?.success && setData.settings) {
+          setShopInfo({
+            shop_name: setData.settings.shop_name || "Preeti Communication",
+            owner_name: setData.settings.owner_name || "Preeti Communication",
+            shop_slug: setData.settings.shop_slug || "preeti",
+            is_closed: Boolean(setData.settings.is_closed),
+          });
+        }
+      })
+      .catch((err) => console.error("Settings load error:", err));
   }, []);
 
   useEffect(() => {
@@ -198,15 +242,13 @@ export default function AdminDashboard() {
         .on("postgres_changes", { event: "*", schema: "public", table: "printers" }, () => {
           fetchDashboardData();
         })
-        .on("postgres_changes", { event: "*", schema: "public", table: "settings" }, () => {
-          fetchDashboardData();
-        })
         .subscribe();
     }
 
+    // Fast 3.5s polling loop to guarantee incoming orders appear immediately
     const interval = setInterval(() => {
       fetchDashboardData();
-    }, 8000);
+    }, 3500);
 
     return () => {
       clearInterval(interval);
@@ -237,6 +279,7 @@ export default function AdminDashboard() {
               onPreviewFile={handleOpenPreview}
               onExpressPrint={handleExpressPrint}
               onPrintSlip={handlePrintSlip}
+              onDecline={handleDecline}
               isPrinting={isPrinting}
             />
           )}

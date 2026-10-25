@@ -673,10 +673,13 @@ export default function ShopkeeperPrintDashboard() {
   // Unique Top Spotlight for Incoming Orders (persists above dashboard for instant shopkeeper action)
   const incomingSpotlightOrder = useMemo(() => {
     if (spotlightOrder && spotlightOrder.id !== dismissedSpotlightId) {
-      return orders.find((o) => o.id === spotlightOrder.id) || spotlightOrder;
+      const match = orders.find((o) => o.id === spotlightOrder.id);
+      if (match && ["payment_pending", "paid", "queued", "printing"].includes(match.status)) {
+        return match;
+      }
     }
     const pending = orders.find(
-      (o) => ["payment_pending", "paid", "queued"].includes(o.status) && o.id !== dismissedSpotlightId
+      (o) => ["payment_pending", "paid", "queued", "printing"].includes(o.status) && o.id !== dismissedSpotlightId
     );
     return pending || null;
   }, [spotlightOrder, dismissedSpotlightId, orders]);

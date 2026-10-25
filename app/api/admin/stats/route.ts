@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminSupabase, isSupabaseConfigured } from "@/lib/supabase";
 
 export const dynamic = "force-dynamic";
+export const revalidate = 0;
 
 export async function GET(req: NextRequest) {
   try {
@@ -14,10 +15,10 @@ export async function GET(req: NextRequest) {
 
     const supabase = getAdminSupabase();
 
-    // 1. Fetch all orders with files
+    // 1. Fetch all orders with files and joined printer details
     const { data: allOrders, error: ordersErr } = await supabase
       .from("orders")
-      .select("*, files:order_files(*)")
+      .select("*, files:order_files(*, printer:printers(id, display_name, system_name))")
       .order("created_at", { ascending: false });
 
     if (ordersErr) {
@@ -69,6 +70,39 @@ export async function GET(req: NextRequest) {
 
     const activePrintersCount = printers.filter((p) => p.status === "online").length;
 
+    // Calculate sequential daily token numbers
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const sortedAsc = [...orders].sort(
+      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime()
+    );
+
+    let todayTokenCounter = 1;
+    const tokenMap = new Map<string, number>();
+    for (const ord of sortedAsc) {
+      if (new Date(ord.created_at) >= todayStart) {
+        tokenMap.set(ord.id, todayTokenCounter++);
+      } else {
+        tokenMap.set(ord.id, 1);
+      }
+    }
+
+    const recentOrdersSlice = orders.slice(0, 25);
+    for (const ord of recentOrdersSlice) {
+      ord.token_number = tokenMap.get(ord.id) || 1;
+      if (ord.files && Array.isArray(ord.files)) {
+        for (const f of ord.files) {
+          if (f.storage_path) {
+            const { data: signed } = await supabase.storage
+              .from("order-files")
+              .createSignedUrl(f.storage_path, 3600);
+            f.download_url = signed?.signedUrl;
+          }
+        }
+      }
+    }
+
     return new NextResponse(
       JSON.stringify({
         success: true,
@@ -82,7 +116,7 @@ export async function GET(req: NextRequest) {
           total_pages: totalPages,
           active_printers: activePrintersCount,
         },
-        recent_orders: orders.slice(0, 15),
+        recent_orders: recentOrdersSlice,
         printers,
         timestamp: new Date().toISOString(),
       }),

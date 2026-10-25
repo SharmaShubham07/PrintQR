@@ -39,12 +39,26 @@ export default function LiveIncomingOrderSpotlight({
       <div className="flex items-center justify-between gap-3 border-b border-slate-800 pb-3 mb-3.5">
         <div className="flex items-center gap-2 flex-wrap">
           <span className="relative flex h-2.5 w-2.5">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
+            <span className={`animate-ping absolute inline-flex h-full w-full rounded-full opacity-75 ${
+              order.status === "payment_pending" ? "bg-amber-400" : "bg-emerald-400"
+            }`}></span>
+            <span className={`relative inline-flex rounded-full h-2.5 w-2.5 ${
+              order.status === "payment_pending" ? "bg-amber-500" : "bg-emerald-500"
+            }`}></span>
           </span>
-          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-emerald-950 text-emerald-300 border border-emerald-800/80 flex items-center gap-1">
-            <Zap className="w-3 h-3 fill-emerald-300" />
-            Live Incoming Request
+          <span className={`px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider flex items-center gap-1 ${
+            order.status === "payment_pending"
+              ? "bg-amber-950/70 text-amber-300 border border-amber-800"
+              : order.status === "completed"
+              ? "bg-slate-800 text-slate-300 border border-slate-700"
+              : "bg-emerald-950 text-emerald-300 border border-emerald-800/80"
+          }`}>
+            <Zap className="w-3 h-3 fill-current" />
+            {order.status === "payment_pending"
+              ? "Payment Pending"
+              : order.status === "completed"
+              ? "Recently Completed"
+              : "Live Incoming Request"}
           </span>
           <span className="text-xs text-slate-400">
             {formatTimeAgo(order.created_at)}
@@ -158,10 +172,24 @@ export default function LiveIncomingOrderSpotlight({
               type="button"
               disabled={isPrinting}
               onClick={() => onExpressPrint?.(order)}
-              className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 shadow-xs cursor-pointer disabled:opacity-50"
+              className={`w-full py-2.5 px-4 font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 shadow-xs cursor-pointer disabled:opacity-50 ${
+                order.status === "payment_pending"
+                  ? "bg-amber-600 hover:bg-amber-500 text-white"
+                  : order.status === "completed"
+                  ? "bg-slate-700 hover:bg-slate-600 text-white"
+                  : "bg-indigo-600 hover:bg-indigo-500 text-white"
+              }`}
             >
               <Printer className="w-4 h-4" />
-              <span>{isPrinting ? "Printing In Progress..." : `Print for ${order.customer_name || "Customer"}`}</span>
+              <span>
+                {isPrinting
+                  ? "Printing In Progress..."
+                  : order.status === "payment_pending"
+                  ? `Confirm & Print for ${order.customer_name || "Customer"}`
+                  : order.status === "completed"
+                  ? `Reprint for ${order.customer_name || "Customer"}`
+                  : `Print for ${order.customer_name || "Customer"}`}
+              </span>
             </button>
 
             <div className="flex items-center gap-2">
