@@ -21,17 +21,18 @@ export default function Navbar({ language, onLanguageChange, isShopClosed }: Pro
       <div className="max-w-4xl mx-auto px-4 py-3 flex items-center justify-between gap-3">
         {/* Modern Sleek Brand Logo */}
         <Link href="/" className="flex items-center gap-3 group">
-          <div className="w-10 h-10 sm:w-11 sm:h-11 rounded-2xl bg-gradient-to-tr from-indigo-600 via-indigo-600 to-violet-600 text-white flex items-center justify-center shadow-md shadow-indigo-600/25 group-hover:scale-105 transition-all">
-            <Printer className="w-5 h-5 sm:w-6 sm:h-6 stroke-[2.2]" />
+          <div className="h-10 sm:h-11 px-2.5 rounded-2xl bg-white border border-slate-200/90 shadow-xs group-hover:scale-105 transition-all flex items-center justify-center">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logos/logo-badge.svg" alt="Preeti Communication Logo" className="h-7 sm:h-8 w-auto object-contain" />
           </div>
-          <div>
+          <div className="hidden xs:block">
             <div className="flex items-center gap-2">
               <span className="font-extrabold text-slate-900 text-base sm:text-lg leading-tight tracking-tight">
                 {t.shop_title}
               </span>
-              <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-200/80">
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-indigo-50 text-indigo-700 border border-indigo-200/80">
                 <Sparkles className="w-2.5 h-2.5 text-indigo-600" />
-                PrintQR
+                Express
               </span>
             </div>
             <p className="text-[11px] text-slate-500 font-medium hidden sm:block">

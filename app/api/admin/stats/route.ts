@@ -88,19 +88,32 @@ export async function GET(req: NextRequest) {
       }
     }
 
-    const recentOrdersSlice = orders.slice(0, 25);
+    const recentOrdersSlice = orders.slice(0, 15);
+    const statSigningTasks: Promise<any>[] = [];
     for (const ord of recentOrdersSlice) {
       ord.token_number = tokenMap.get(ord.id) || 1;
+      // Only sign active or first 5 recent orders for instant dashboard response
       if (ord.files && Array.isArray(ord.files)) {
         for (const f of ord.files) {
           if (f.storage_path) {
-            const { data: signed } = await supabase.storage
-              .from("order-files")
-              .createSignedUrl(f.storage_path, 3600);
-            f.download_url = signed?.signedUrl;
+            statSigningTasks.push(
+              supabase.storage
+                .from("order-files")
+                .createSignedUrl(f.storage_path, 3600)
+                .then(({ data: signed }) => {
+                  if (signed?.signedUrl) {
+                    f.download_url = signed.signedUrl;
+                  }
+                })
+                .catch(() => {})
+            );
           }
         }
       }
+    }
+
+    if (statSigningTasks.length > 0) {
+      await Promise.all(statSigningTasks);
     }
 
     return new NextResponse(

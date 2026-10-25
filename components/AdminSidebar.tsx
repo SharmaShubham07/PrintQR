@@ -69,16 +69,20 @@ export default function AdminSidebar({ isAgentOnline: initialAgentOnline = true 
   return (
     <aside className="w-64 bg-slate-900 text-slate-300 flex flex-col shrink-0 min-h-screen">
       {/* Brand Header */}
-      <div className="p-5 border-b border-slate-800 flex items-center justify-between">
-        <div>
-          <div className="flex items-center gap-2">
-            <span className="font-black text-white text-base tracking-tight truncate max-w-[150px]">
+      <div className="p-4 border-b border-slate-800 flex items-center justify-between">
+        <div className="flex items-center gap-2.5 min-w-0">
+          <div className="w-10 h-10 rounded-xl bg-white/10 p-1 flex items-center justify-center border border-white/15 shrink-0">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logos/logo-badge.svg" alt="Preeti Communication" className="w-full h-full object-contain" />
+          </div>
+          <div className="min-w-0">
+            <span className="block font-black text-white text-sm tracking-tight truncate max-w-[130px]">
               Preeti Communication
             </span>
+            <p className="text-[10px] text-slate-400 font-medium truncate">
+              Cyber Cafe &amp; Print Hub
+            </p>
           </div>
-          <p className="text-[11px] text-slate-400 font-medium">
-            Cyber Cafe &amp; Print Hub
-          </p>
         </div>
         <span className="px-1.5 py-0.5 rounded text-[10px] font-bold bg-indigo-500/20 text-indigo-400 border border-indigo-500/30">
           PRO

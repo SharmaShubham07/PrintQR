@@ -431,9 +431,27 @@ export default function ShopkeeperPrintDashboard() {
         .subscribe();
     }
 
-    const interval = setInterval(fetchOrders, 4000);
+    const pollOrders = () => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      fetchOrders();
+    };
+
+    const interval = setInterval(pollOrders, 7000);
+
+    const onVisibility = () => {
+      if (typeof document !== "undefined" && !document.hidden) {
+        fetchOrders();
+      }
+    };
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", onVisibility);
+    }
+
     return () => {
       clearInterval(interval);
+      if (typeof document !== "undefined") {
+        document.removeEventListener("visibilitychange", onVisibility);
+      }
       if (subscription) supabase.removeChannel(subscription);
     };
   }, []);

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useMemo } from "react";
 import { useRouter } from "next/navigation";
 import Navbar from "@/components/Navbar";
 import FileUploader from "@/components/FileUploader";
@@ -124,10 +124,20 @@ export default function CustomerPortal() {
 
     loadAll();
 
-    // 8-second polling fallback ensures instantaneous sync if shopkeeper adjusts rates or pauses counter
+    // Polling fallback with visibility awareness (Realtime channels handle instant sync)
     const pollInterval = setInterval(() => {
+      if (typeof document !== "undefined" && document.hidden) return;
       loadAll();
-    }, 8000);
+    }, 25000);
+
+    const onVisibilityChange = () => {
+      if (typeof document !== "undefined" && !document.hidden) {
+        loadAll();
+      }
+    };
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", onVisibilityChange);
+    }
 
     // Subscribe to realtime printer updates
     const printerChannel = supabase
@@ -155,6 +165,9 @@ export default function CustomerPortal() {
 
     return () => {
       clearInterval(pollInterval);
+      if (typeof document !== "undefined") {
+        document.removeEventListener("visibilitychange", onVisibilityChange);
+      }
       supabase.removeChannel(printerChannel);
       supabase.removeChannel(pricingChannel);
     };
@@ -326,7 +339,7 @@ export default function CustomerPortal() {
     }
   };
 
-  const { total } = calculateOrderTotal(files, pricing);
+  const { total } = useMemo(() => calculateOrderTotal(files, pricing), [files, pricing]);
 
   return (
     <div className="min-h-screen flex flex-col bg-gradient-to-b from-slate-50 to-indigo-50/20">
@@ -440,16 +453,8 @@ export default function CustomerPortal() {
               </p>
             </div>
 
-            <FileUploader
-              files={files}
-              onChange={setFiles}
-              language={language}
-              maxSizeMb={25}
-              pricing={pricing}
-            />
-
-            {/* Customer Details Card - Name Required */}
-            <div className="bg-slate-50/90 border border-slate-200/90 rounded-2xl p-4 sm:p-5 space-y-3.5">
+            {/* Customer Details Card - Name Required (Positioned at Top) */}
+            <div className="bg-slate-50/90 border border-slate-200/90 rounded-2xl p-4 sm:p-5 space-y-3.5 shadow-xs">
               <div className="flex items-center justify-between">
                 <span className="flex items-center gap-2 text-xs font-bold text-slate-800 uppercase tracking-wider">
                   <User className="w-4 h-4 text-indigo-600" />
@@ -519,6 +524,15 @@ export default function CustomerPortal() {
                 </div>
               </div>
             </div>
+
+            {/* Document Upload Area */}
+            <FileUploader
+              files={files}
+              onChange={setFiles}
+              language={language}
+              maxSizeMb={25}
+              pricing={pricing}
+            />
 
             <div className="pt-2">
               <button

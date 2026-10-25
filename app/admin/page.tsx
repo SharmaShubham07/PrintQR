@@ -245,13 +245,28 @@ export default function AdminDashboard() {
         .subscribe();
     }
 
-    // Fast 3.5s polling loop to guarantee incoming orders appear immediately
-    const interval = setInterval(() => {
+    // Polling loop with tab visibility awareness (Realtime handles instant events)
+    const pollDashboard = () => {
+      if (typeof document !== "undefined" && document.hidden) return;
       fetchDashboardData();
-    }, 3500);
+    };
+
+    const interval = setInterval(pollDashboard, 6000);
+
+    const onVisibility = () => {
+      if (typeof document !== "undefined" && !document.hidden) {
+        fetchDashboardData();
+      }
+    };
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", onVisibility);
+    }
 
     return () => {
       clearInterval(interval);
+      if (typeof document !== "undefined") {
+        document.removeEventListener("visibilitychange", onVisibility);
+      }
       if (channel) supabase.removeChannel(channel);
     };
   }, [fetchDashboardData]);

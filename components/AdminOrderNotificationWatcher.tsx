@@ -107,12 +107,29 @@ export default function AdminOrderNotificationWatcher() {
         .subscribe();
     }
 
-    // High frequency 3-second background polling
-    const interval = setInterval(checkNewOrders, 3000);
+    // Background polling fallback with tab visibility checks
+    const pollOrders = () => {
+      if (typeof document !== "undefined" && document.hidden) return;
+      checkNewOrders();
+    };
+
+    const interval = setInterval(pollOrders, 8000);
+
+    const onVisibility = () => {
+      if (typeof document !== "undefined" && !document.hidden) {
+        checkNewOrders();
+      }
+    };
+    if (typeof document !== "undefined") {
+      document.addEventListener("visibilitychange", onVisibility);
+    }
 
     return () => {
       isCancelled = true;
       clearInterval(interval);
+      if (typeof document !== "undefined") {
+        document.removeEventListener("visibilitychange", onVisibility);
+      }
       if (channel) supabase.removeChannel(channel);
     };
   }, [router]);

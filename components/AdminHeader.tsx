@@ -216,8 +216,9 @@ export default function AdminHeader({
             <LogOut className="w-3.5 h-3.5" />
           </button>
 
-          <div className="w-8 h-8 rounded-full bg-gradient-to-tr from-indigo-600 to-cyan-500 text-white flex items-center justify-center font-black text-xs shadow-xs">
-            {ownerName ? ownerName.charAt(0).toUpperCase() : "P"}
+          <div className="w-8 h-8 rounded-full bg-white border border-slate-200 p-0.5 flex items-center justify-center shadow-xs overflow-hidden">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/logos/logo-badge.svg" alt="Preeti Logo" className="w-full h-full object-contain" />
           </div>
           <div className="hidden sm:block text-left">
             <p className="text-xs font-bold text-slate-800 leading-none">{ownerName || "Preeti Communication"}</p>

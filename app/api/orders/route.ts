@@ -365,18 +365,40 @@ export async function GET(req: NextRequest) {
         }
       }
 
+      // Assign token numbers
       for (const ord of orders) {
         ord.token_number = tokenMap.get(ord.id) || 1;
+      }
+
+      // Performance Optimization: Only generate signed URLs in parallel for active & recent orders
+      // Historical orders resolve URLs on-demand via /api/orders/[id] when clicked
+      const signingTasks: Promise<any>[] = [];
+      const ordersToSign = orders.filter(
+        (o, idx) => idx < 10 || ["queued", "printing", "payment_pending"].includes(o.status)
+      );
+
+      for (const ord of ordersToSign) {
         if (ord.files && Array.isArray(ord.files)) {
           for (const f of ord.files) {
             if (f.storage_path) {
-              const { data: signed } = await supabase.storage
-                .from("order-files")
-                .createSignedUrl(f.storage_path, 3600);
-              f.download_url = signed?.signedUrl;
+              signingTasks.push(
+                supabase.storage
+                  .from("order-files")
+                  .createSignedUrl(f.storage_path, 3600)
+                  .then(({ data: signed }) => {
+                    if (signed?.signedUrl) {
+                      f.download_url = signed.signedUrl;
+                    }
+                  })
+                  .catch(() => {})
+              );
             }
           }
         }
+      }
+
+      if (signingTasks.length > 0) {
+        await Promise.all(signingTasks);
       }
 
       return NextResponse.json({ success: true, orders });
