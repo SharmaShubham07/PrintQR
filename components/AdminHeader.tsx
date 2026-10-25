@@ -55,7 +55,13 @@ export default function AdminHeader({
 
   useEffect(() => {
     setLocalClosed(isShopClosed);
-    setNotifPermission(getNotificationPermission());
+    const perm = getNotificationPermission();
+    setNotifPermission(perm);
+    if (perm === "default") {
+      requestNotificationPermission()
+        .then((res) => setNotifPermission(res))
+        .catch(() => {});
+    }
   }, [isShopClosed]);
 
   const handleToggleOrTestNotification = async () => {

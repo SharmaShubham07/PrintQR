@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
 import { Loader2, Printer } from "lucide-react";
+import AdminOrderNotificationWatcher from "./AdminOrderNotificationWatcher";
 
 export default function AdminAuthGuard({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
@@ -71,5 +72,10 @@ export default function AdminAuthGuard({ children }: { children: React.ReactNode
     return null;
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      <AdminOrderNotificationWatcher />
+      {children}
+    </>
+  );
 }

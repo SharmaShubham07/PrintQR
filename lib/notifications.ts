@@ -75,6 +75,33 @@ export function stopTabFlashing() {
   }
 }
 
+const ALERTED_STORAGE_KEY = "printqr_alerted_orders";
+
+export function hasOrderBeenAlerted(orderId: string): boolean {
+  if (typeof window === "undefined") return false;
+  try {
+    const raw = sessionStorage.getItem(ALERTED_STORAGE_KEY);
+    if (!raw) return false;
+    const ids = JSON.parse(raw);
+    return Array.isArray(ids) && ids.includes(orderId);
+  } catch {
+    return false;
+  }
+}
+
+export function markOrderAlerted(orderId: string): void {
+  if (typeof window === "undefined") return;
+  try {
+    const raw = sessionStorage.getItem(ALERTED_STORAGE_KEY);
+    const ids: string[] = raw ? JSON.parse(raw) : [];
+    if (!ids.includes(orderId)) {
+      ids.push(orderId);
+      if (ids.length > 50) ids.shift();
+      sessionStorage.setItem(ALERTED_STORAGE_KEY, JSON.stringify(ids));
+    }
+  } catch {}
+}
+
 export interface DesktopNotificationOptions {
   title: string;
   body: string;
@@ -88,14 +115,18 @@ export function sendDesktopNotification(options: DesktopNotificationOptions): No
   if (Notification.permission !== "granted") return null;
 
   try {
+    const iconUrl = options.icon || (typeof window !== "undefined" ? `${window.location.origin}/favicon.ico` : "/favicon.ico");
     const notif = new Notification(options.title, {
       body: options.body,
-      icon: options.icon || "/favicon.ico",
+      icon: iconUrl,
+      badge: iconUrl,
       tag: options.tag || "printqr-order-" + Date.now(),
-      requireInteraction: true, // Keep notification on screen until user interacts with it in Chrome
+      requireInteraction: true, // Keep notification visible on screen in Windows until dismissed/clicked
+      silent: false,
     });
 
-    notif.onclick = () => {
+    notif.onclick = (e) => {
+      e.preventDefault();
       try {
         window.focus();
       } catch (e) {
@@ -132,24 +163,32 @@ export interface MinimalOrderInfo {
 /**
  * Triggers full multi-modal alert:
  * 1. Audio chime (Web Audio API)
- * 2. Chrome Desktop OS notification
+ * 2. Chrome Desktop OS notification (pops up on Windows regardless of active app/tab)
  * 3. Browser tab flashing
  */
 export function triggerFullOrderAlert(order: MinimalOrderInfo, onClick?: () => void) {
+  // Prevent duplicate chimes across components or multiple open admin tabs
+  if (order.id && !order.id.startsWith("test-")) {
+    if (hasOrderBeenAlerted(order.id)) {
+      return;
+    }
+    markOrderAlerted(order.id);
+  }
+
   // 1. Play crystal clear shop audio chime
   playNewOrderChime();
 
   const tokenLabel = order.token_number ? `#${order.token_number}` : (order.order_number || "");
   const isColor = order.files?.some((f) => f.color_mode === "color");
   const totalPages = order.files?.reduce((sum, f) => sum + ((f.effective_pages || f.page_count || 1) * (f.copies || 1)), 0) || 1;
-  const printerType = isColor ? "🌈 COLOR (Brother)" : "⚫ B&W (Canon)";
+  const printerType = isColor ? "Color (Brother)" : "B&W (Canon)";
   const customerName = order.customer_name || "Customer";
-  const amountStr = order.total_amount ? `₹${Number(order.total_amount).toFixed(2)}` : "Paid";
+  const amountStr = order.total_amount ? `₹${Number(order.total_amount).toFixed(2)}` : "₹0.00";
 
   // 2. Start tab flashing
-  startTabFlashing(`(1) 🖨️ NEW ORDER Token ${tokenLabel}!`);
+  startTabFlashing(`(1) 🖨️ NEW ORDER: Token ${tokenLabel} (${customerName})!`);
 
-  // 3. Dispatch on-screen in-app notification popup event (always displays on screen)
+  // 3. Dispatch on-screen in-app notification popup event
   if (typeof window !== "undefined") {
     window.dispatchEvent(
       new CustomEvent("printqr:incoming-order", {
@@ -158,15 +197,20 @@ export function triggerFullOrderAlert(order: MinimalOrderInfo, onClick?: () => v
     );
   }
 
-  // 4. Dispatch native Chrome / OS desktop notification (if granted)
+  // 4. Dispatch native Windows OS desktop notification (visible from any desktop tab / program)
   sendDesktopNotification({
-    title: `🖨️ New Print Order! Token ${tokenLabel}`,
-    body: `${customerName} • ${printerType} • ${totalPages} pgs • ${amountStr}`,
+    title: `🖨️ New Print Request! Token ${tokenLabel}`,
+    body: `Customer: ${customerName}\n${printerType} • ${totalPages} pg • Total: ${amountStr}`,
     icon: "/favicon.ico",
     tag: `order-${order.id}`,
     onClick: () => {
       stopTabFlashing();
-      if (onClick) onClick();
+      if (onClick) {
+        onClick();
+      } else if (typeof window !== "undefined") {
+        window.focus();
+        window.location.href = `/admin/orders?order=${order.order_number || order.id}`;
+      }
     },
   });
 }
