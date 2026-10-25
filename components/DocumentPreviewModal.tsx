@@ -102,18 +102,18 @@ export default function DocumentPreviewModal({
     <div className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-6 bg-slate-950/80 backdrop-blur-sm animate-in fade-in duration-200">
       <div className="bg-white rounded-3xl w-full max-w-5xl h-[90vh] flex flex-col shadow-2xl border border-slate-200 overflow-hidden">
         {/* Modal Header */}
-        <div className="px-6 py-4 border-b border-slate-200 flex items-center justify-between gap-4 bg-slate-50/70">
+        <div className="px-3.5 sm:px-6 py-2.5 sm:py-4 border-b border-slate-200 flex items-center justify-between gap-3 bg-slate-50/70">
           <div className="flex items-center gap-3 min-w-0">
-            <div className={`w-10 h-10 rounded-2xl flex items-center justify-center shrink-0 ${
+            <div className={`w-9 h-9 sm:w-10 sm:h-10 rounded-xl sm:rounded-2xl flex items-center justify-center shrink-0 ${
               isPdf ? "bg-rose-100 text-rose-600" : isImage ? "bg-cyan-100 text-cyan-600" : "bg-indigo-100 text-indigo-600"
             }`}>
-              <FileText className="w-5 h-5" />
+              <FileText className="w-4 h-4 sm:w-5 sm:h-5" />
             </div>
             <div className="min-w-0">
-              <h3 className="font-bold text-slate-900 text-sm sm:text-base truncate">
+              <h3 className="font-bold text-slate-900 text-xs sm:text-base truncate max-w-[180px] sm:max-w-md">
                 {fileName}
               </h3>
-              <div className="flex items-center gap-2 text-xs text-slate-500 font-medium">
+              <div className="flex items-center gap-1.5 sm:gap-2 text-[10px] sm:text-xs text-slate-500 font-medium flex-wrap">
                 <span>{formatBytes(file.file_size)}</span>
                 <span>•</span>
                 <span className="capitalize">{file.page_count} {file.page_count === 1 ? "page" : "pages"}</span>

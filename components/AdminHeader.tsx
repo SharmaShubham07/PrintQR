@@ -2,10 +2,12 @@
 
 import React, { useState, useEffect } from "react";
 import Link from "next/link";
-import { Volume2, Bell, Shield, Check, Copy, ExternalLink, QrCode, Sparkles, BellRing, BellOff, KeyRound, LogOut } from "lucide-react";
+import { Volume2, Bell, Shield, Check, Copy, ExternalLink, QrCode, Sparkles, BellRing, BellOff, KeyRound, LogOut, Menu } from "lucide-react";
 import { useRouter } from "next/navigation";
 import ChangePasswordModal from "@/components/ChangePasswordModal";
+import { useAdminNav } from "@/components/AdminNavContext";
 import { playNewOrderChime } from "@/lib/audio";
+
 import { 
   getNotificationPermission, 
   requestNotificationPermission, 
@@ -115,56 +117,101 @@ export default function AdminHeader({
     }
   };
 
+  const { toggleMobileNav } = useAdminNav();
+
   return (
-    <header className="bg-white border-b border-slate-200 px-6 py-4 flex flex-col md:flex-row md:items-center justify-between gap-4 sticky top-0 z-30 shadow-xs">
-      <div>
-        <div className="flex items-center gap-2.5 flex-wrap">
-          <h1 className="text-xl font-black text-slate-900 tracking-tight">{title}</h1>
+    <header className="bg-white border-b border-slate-200 px-3.5 sm:px-6 py-2.5 sm:py-3.5 flex flex-col md:flex-row md:items-center justify-between gap-3 sticky top-0 z-30 shadow-xs">
+      <div className="flex items-center justify-between gap-2.5">
+        <div className="flex items-center gap-2.5 min-w-0">
+          {/* Mobile Hamburger Trigger */}
           <button
             type="button"
-            onClick={toggleShop}
-            disabled={isToggling}
-            className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-bold border transition-colors cursor-pointer ${
-              localClosed
-                ? "bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200"
-                : "bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200"
-            }`}
-            title="Click to toggle shop open/closed status"
+            onClick={toggleMobileNav}
+            className="md:hidden p-2 rounded-xl text-slate-600 hover:text-slate-900 hover:bg-slate-100 border border-slate-200 transition shrink-0 cursor-pointer"
+            aria-label="Toggle navigation menu"
           >
-            <span className={`w-1.5 h-1.5 rounded-full ${localClosed ? "bg-rose-500" : "bg-emerald-500 animate-pulse"}`}></span>
-            <span>{localClosed ? "Queue Paused (Click to Open)" : "Counter Active (Click to Pause)"}</span>
+            <Menu className="w-5 h-5" />
+          </button>
+
+          <div className="min-w-0">
+            <div className="flex items-center gap-2 flex-wrap">
+              <h1 className="text-base sm:text-xl font-black text-slate-900 tracking-tight truncate max-w-[200px] sm:max-w-md">
+                {title}
+              </h1>
+              <button
+                type="button"
+                onClick={toggleShop}
+                disabled={isToggling}
+                className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[10px] sm:text-[11px] font-bold border transition-colors cursor-pointer shrink-0 ${
+                  localClosed
+                    ? "bg-rose-50 hover:bg-rose-100 text-rose-700 border-rose-200"
+                    : "bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border-emerald-200"
+                }`}
+                title="Click to toggle shop open/closed status"
+              >
+                <span className={`w-1.5 h-1.5 rounded-full ${localClosed ? "bg-rose-500" : "bg-emerald-500 animate-pulse"}`}></span>
+                <span>
+                  {localClosed ? "Paused" : "Active"}
+                  <span className="hidden sm:inline">{localClosed ? " (Click to Open)" : " Counter"}</span>
+                </span>
+              </button>
+            </div>
+            {subtitle && (
+              <p className="text-[11px] sm:text-xs text-slate-500 mt-0.5 font-medium truncate max-w-sm sm:max-w-xl">
+                {subtitle}
+              </p>
+            )}
+          </div>
+        </div>
+
+        {/* Mobile Quick Logout & Password icons (only on tiny screens) */}
+        <div className="flex sm:hidden items-center gap-1.5 shrink-0">
+          <button
+            type="button"
+            onClick={() => setShowPasswordModal(true)}
+            className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:text-indigo-600 hover:bg-slate-50 transition"
+            title="Change Password"
+          >
+            <KeyRound className="w-4 h-4 text-indigo-600" />
+          </button>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="p-1.5 rounded-lg border border-slate-200 text-slate-600 hover:text-rose-600 hover:bg-rose-50 transition"
+            title="Log Out"
+          >
+            <LogOut className="w-4 h-4" />
           </button>
         </div>
-        {subtitle && <p className="text-xs text-slate-500 mt-0.5 font-medium">{subtitle}</p>}
       </div>
 
-      <div className="flex items-center gap-2.5 flex-wrap">
+      <div className="flex items-center gap-2 sm:gap-2.5 flex-wrap justify-between sm:justify-end">
         {/* Customer Shop URL 1-Click Copy */}
         <button
           type="button"
           onClick={copyCustomerLink}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-indigo-200 bg-indigo-50/70 hover:bg-indigo-100/70 text-indigo-700 text-xs font-bold transition-all shadow-xs"
+          className="inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl border border-indigo-200 bg-indigo-50/70 hover:bg-indigo-100/70 text-indigo-700 text-xs font-bold transition-all shadow-xs cursor-pointer"
           title="Copy customer website upload link"
         >
           {copiedLink ? <Check className="w-3.5 h-3.5 text-emerald-600" /> : <Copy className="w-3.5 h-3.5 text-indigo-600" />}
-          <span>{copiedLink ? "Link Copied!" : "Website Link"}</span>
+          <span className="text-[11px] sm:text-xs">{copiedLink ? "Copied!" : "Link"}</span>
         </button>
 
         {/* Counter Poster Quick Link */}
         <Link
           href="/admin/poster"
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-700 transition-colors shadow-xs"
+          className="hidden sm:inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border border-slate-200 hover:bg-slate-50 text-xs font-semibold text-slate-700 transition-colors shadow-xs"
           title="Print Shopkeeper Counter Stand QR Poster"
         >
           <QrCode className="w-3.5 h-3.5 text-slate-500" />
-          <span className="hidden sm:inline">Counter Poster</span>
+          <span>Counter Poster</span>
         </Link>
 
         {/* Chrome / Desktop Popup Notification Button */}
         <button
           type="button"
           onClick={handleToggleOrTestNotification}
-          className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all shadow-xs ${
+          className={`inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-xl border text-xs font-semibold transition-all shadow-xs cursor-pointer ${
             notifPermission === "granted"
               ? "border-emerald-200 bg-emerald-50/80 text-emerald-700 hover:bg-emerald-100/80"
               : notifPermission === "denied"
@@ -173,10 +220,10 @@ export default function AdminHeader({
           }`}
           title={
             notifPermission === "granted"
-              ? "Chrome alerts active! Click to test popup & sound."
+              ? "Alerts active! Click to test chime."
               : notifPermission === "denied"
-              ? "Chrome notifications blocked. Click for instructions to unblock."
-              : "Click to enable Chrome popup notifications for new print orders!"
+              ? "Notifications blocked."
+              : "Enable alert notifications"
           }
         >
           {notifPermission === "granted" ? (
@@ -186,17 +233,17 @@ export default function AdminHeader({
           ) : (
             <Bell className="w-3.5 h-3.5 text-indigo-600" />
           )}
-          <span>
+          <span className="text-[11px] sm:text-xs">
             {notifPermission === "granted"
-              ? (testedAudio ? "Chime & Popup Sent!" : "Chrome Alerts: On")
+              ? (testedAudio ? "Chime Sent!" : "Alerts: On")
               : notifPermission === "denied"
-              ? "Alerts Blocked"
-              : "Enable Chrome Popups"}
+              ? "Alerts Off"
+              : "Enable Alerts"}
           </span>
         </button>
 
         {/* Shopkeeper Profile Card with Quick Actions */}
-        <div className="relative flex items-center gap-2 pl-2 border-l border-slate-200">
+        <div className="hidden sm:flex items-center gap-2 pl-2 border-l border-slate-200">
           <button
             type="button"
             onClick={() => setShowPasswordModal(true)}
@@ -204,7 +251,7 @@ export default function AdminHeader({
             title="Change Admin Password"
           >
             <KeyRound className="w-3.5 h-3.5 text-indigo-600" />
-            <span className="hidden sm:inline">Change Password</span>
+            <span className="hidden md:inline">Password</span>
           </button>
 
           <button
@@ -220,7 +267,7 @@ export default function AdminHeader({
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src="/logos/logo-badge.svg" alt="Preeti Logo" className="w-full h-full object-contain" />
           </div>
-          <div className="hidden sm:block text-left">
+          <div className="hidden lg:block text-left">
             <p className="text-xs font-bold text-slate-800 leading-none">{ownerName || "Preeti Communication"}</p>
             <p className="text-[10px] text-slate-400 font-medium truncate max-w-[120px]">{shopName}</p>
           </div>

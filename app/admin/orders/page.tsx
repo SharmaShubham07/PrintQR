@@ -731,14 +731,15 @@ export default function ShopkeeperPrintDashboard() {
           isShopClosed={shopInfo.is_closed}
         />
 
-        <main className="p-4 sm:p-6 space-y-5 flex-1 overflow-y-auto">
+        <main className="p-3 sm:p-6 pb-24 md:pb-6 space-y-4 sm:space-y-5 flex-1 overflow-y-auto">
           {/* Active Print Notification Toast */}
           {printToast && (
-            <div className="fixed top-20 right-6 z-50 max-w-md w-full bg-slate-900 text-white p-4 rounded-2xl shadow-2xl border border-slate-700 animate-in fade-in slide-in-from-top-4 duration-200">
+            <div className="fixed top-16 sm:top-20 right-3 sm:right-6 left-3 sm:left-auto z-50 max-w-md bg-slate-900 text-white p-4 rounded-2xl shadow-2xl border border-slate-700 animate-in fade-in slide-in-from-top-4 duration-200">
               <div className="flex items-start gap-3">
                 <div className="p-2.5 bg-indigo-600 rounded-xl shrink-0 mt-0.5">
                   <Printer className="w-5 h-5 text-white animate-pulse" />
                 </div>
+
                 <div className="flex-1 min-w-0">
                   <h4 className="font-bold text-sm text-white flex items-center gap-2">
                     <span>{printToast.message}</span>
@@ -1090,8 +1091,8 @@ export default function ShopkeeperPrintDashboard() {
                       </div>
 
                       {/* Header Batch Actions & Color Mode Tag */}
-                      <div className="flex flex-col items-end gap-2 self-end sm:self-auto shrink-0">
-                        <div className="flex items-center gap-2 flex-wrap justify-end">
+                      <div className="flex flex-col items-stretch sm:items-end gap-2 w-full sm:w-auto shrink-0">
+                        <div className="flex items-center gap-2 flex-wrap justify-start sm:justify-end">
                           {isPending && (
                             <>
                               <button
@@ -1130,9 +1131,10 @@ export default function ShopkeeperPrintDashboard() {
                               title={isPending ? `Payment pending: Confirm & print for ${order.customer_name}` : `Print all files in serial order for ${order.customer_name}`}
                             >
                               <Printer className="w-3.5 h-3.5" />
-                              <span>{isPending ? `Confirm & Print` : `Serial Print for ${order.customer_name}`}</span>
+                              <span>{isPending ? "Confirm & Print" : `Print All (${order.customer_name.split(" ")[0]})`}</span>
                             </button>
                           )}
+
 
                           {!isDone && !isDeclined && (
                             <button

@@ -116,13 +116,14 @@ export default function AdminReportsPage() {
           subtitle="Real-time sales performance, print volume distribution, and CSV export from database"
         />
 
-        <main className="p-6 max-w-4xl space-y-6 flex-1 overflow-y-auto">
+        <main className="p-3 sm:p-6 pb-24 md:pb-6 max-w-4xl space-y-4 sm:space-y-6 flex-1 overflow-y-auto">
           {/* Header Controls */}
-          <div className="bg-white border border-slate-200 rounded-2xl p-4 shadow-xs flex flex-col sm:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <Calendar className="w-4 h-4 text-slate-400" />
-              <div className="flex gap-1 bg-slate-100 p-1 rounded-xl text-xs font-semibold">
-                {(["today", "week", "month", "all"] as const).map((p) => (
+          <div className="bg-white border border-slate-200 rounded-2xl p-3.5 sm:p-4 shadow-xs flex flex-col sm:flex-row items-stretch sm:items-center justify-between gap-3 sm:gap-4">
+            <div className="flex items-center justify-between sm:justify-start gap-2 sm:gap-3 flex-wrap">
+              <div className="flex items-center gap-2">
+                <Calendar className="w-4 h-4 text-slate-400" />
+                <div className="flex gap-1 bg-slate-100 p-1 rounded-xl text-xs font-semibold">
+                  {(["today", "week", "month", "all"] as const).map((p) => (
                   <button
                     key={p}
                     type="button"
@@ -148,6 +149,8 @@ export default function AdminReportsPage() {
                 <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
               </button>
             </div>
+          </div>
+
 
             <button
               type="button"

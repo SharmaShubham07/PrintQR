@@ -121,7 +121,7 @@ export default function AdminSettingsPage() {
           subtitle="Configure business hours, emergency closure toggle, file retention, and counter information"
         />
 
-        <main className="p-6 max-w-4xl space-y-6 flex-1 overflow-y-auto">
+        <main className="p-3 sm:p-6 pb-24 md:pb-6 max-w-4xl space-y-4 sm:space-y-6 flex-1 overflow-y-auto">
           {saved && (
             <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-2xl flex items-center gap-2 text-sm font-semibold animate-in fade-in">
               <Check className="w-5 h-5 text-emerald-600" />
@@ -129,9 +129,9 @@ export default function AdminSettingsPage() {
             </div>
           )}
 
-          <form onSubmit={handleSave} className="space-y-6">
+          <form onSubmit={handleSave} className="space-y-4 sm:space-y-6">
             {/* Emergency Shop Closed Toggle */}
-            <div className={`border rounded-3xl p-6 transition-all ${settings.is_closed
+            <div className={`border rounded-2xl sm:rounded-3xl p-4 sm:p-6 transition-all ${settings.is_closed
                 ? "bg-rose-50 border-rose-300 ring-2 ring-rose-500/20"
                 : "bg-white border-slate-200 shadow-xs"
               }`}>

@@ -73,7 +73,7 @@ export default function AdminPrintersPage() {
           subtitle="Real-time detection and mapping of Windows hardware printers for automatic printing"
         />
 
-        <main className="p-6 max-w-4xl space-y-6 flex-1 overflow-y-auto">
+        <main className="p-3 sm:p-6 pb-24 md:pb-6 max-w-4xl space-y-4 sm:space-y-6 flex-1 overflow-y-auto">
           {saved && (
             <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-2xl flex items-center gap-2 text-sm font-semibold animate-in fade-in">
               <Check className="w-5 h-5 text-emerald-600" />
@@ -82,7 +82,7 @@ export default function AdminPrintersPage() {
           )}
 
           {/* Shop PC Agent Live Status Card */}
-          <div className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="bg-white border border-slate-200 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-xs flex flex-col sm:flex-row sm:items-center justify-between gap-4">
             <div className="flex items-center gap-4">
               <div className="w-12 h-12 rounded-2xl bg-emerald-100 text-emerald-600 flex items-center justify-center shrink-0">
                 <Radio className="w-6 h-6 animate-pulse" />
@@ -136,7 +136,7 @@ export default function AdminPrintersPage() {
                 const isOnline = printer.status === "online";
 
                 return (
-                  <div key={printer.id} className="bg-white border border-slate-200 rounded-3xl p-6 shadow-xs space-y-4">
+                  <div key={printer.id} className="bg-white border border-slate-200 rounded-2xl sm:rounded-3xl p-4 sm:p-6 shadow-xs space-y-4">
                     <div className="flex items-center justify-between border-b border-slate-100 pb-3">
                       <div className="flex items-center gap-3 min-w-0">
                         <div

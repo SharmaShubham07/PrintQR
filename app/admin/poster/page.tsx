@@ -173,9 +173,9 @@ export default function AdminPosterPage() {
           />
         </div>
 
-        <main className="p-4 sm:p-6 space-y-6 flex-1 overflow-y-auto print:p-0">
+        <main className="p-3 sm:p-6 pb-24 md:pb-6 space-y-4 sm:space-y-6 flex-1 overflow-y-auto print:p-0">
           {/* Top Control Bar (Hidden during print) */}
-          <div className="print:hidden bg-white border border-slate-200 rounded-3xl p-5 shadow-xs space-y-4">
+          <div className="print:hidden bg-white border border-slate-200 rounded-2xl sm:rounded-3xl p-4 sm:p-5 shadow-xs space-y-4">
             <div className="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
               {/* URL Config */}
               <div className="space-y-1.5 w-full lg:w-auto">
@@ -299,7 +299,7 @@ export default function AdminPosterPage() {
 
           {/* PRINTABLE A4 POSTER CANVAS CONTAINER */}
           {/* Matches 1:1 with the generated PDF */}
-          <div className="max-w-xl mx-auto bg-white border-2 border-slate-900 rounded-3xl p-6 sm:p-10 shadow-2xl print:shadow-none print:border-none print:max-w-none print:p-4 space-y-6 text-center text-slate-900 relative overflow-hidden">
+          <div className="max-w-xl mx-auto bg-white border-2 border-slate-900 rounded-2xl sm:rounded-3xl p-4 sm:p-10 shadow-2xl print:shadow-none print:border-none print:max-w-none print:p-4 space-y-6 text-center text-slate-900 relative overflow-hidden">
             {/* Top decorative gradient bar */}
             <div className="absolute top-0 left-0 right-0 h-2 bg-gradient-to-r from-indigo-600 via-cyan-500 to-blue-600"></div>
 

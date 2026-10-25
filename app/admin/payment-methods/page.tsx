@@ -94,7 +94,7 @@ export default function AdminPaymentMethodsPage() {
           subtitle="Configure Razorpay online payments and shop counter UPI QR code"
         />
 
-        <main className="p-6 max-w-4xl space-y-6 flex-1 overflow-y-auto">
+        <main className="p-3 sm:p-6 pb-24 md:pb-6 max-w-4xl space-y-4 sm:space-y-6 flex-1 overflow-y-auto">
           {saved && (
             <div className="bg-emerald-50 border border-emerald-200 text-emerald-800 p-4 rounded-2xl flex items-center gap-2 text-sm font-semibold animate-in fade-in">
               <Check className="w-5 h-5 text-emerald-600" />
@@ -110,7 +110,7 @@ export default function AdminPaymentMethodsPage() {
           )}
 
           {/* Active Gateway Status Card */}
-          <div className="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 rounded-3xl p-6 sm:p-8 text-white border border-indigo-500/30 shadow-xl space-y-6">
+          <div className="bg-gradient-to-br from-slate-900 via-indigo-950 to-slate-900 rounded-2xl sm:rounded-3xl p-4 sm:p-8 text-white border border-indigo-500/30 shadow-xl space-y-6">
             <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-white/10 pb-6">
               <div className="flex items-center gap-3.5">
                 <div className="w-12 h-12 rounded-2xl bg-indigo-600/40 border border-indigo-400/40 flex items-center justify-center shrink-0">

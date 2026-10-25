@@ -181,14 +181,14 @@ export default function LiveIncomingOrderSpotlight({
               }`}
             >
               <Printer className="w-4 h-4" />
-              <span>
+              <span className="truncate">
                 {isPrinting
                   ? "Printing In Progress..."
                   : order.status === "payment_pending"
-                  ? `Confirm & Print for ${order.customer_name || "Customer"}`
+                  ? `Confirm & Print (${(order.customer_name || "Customer").split(" ")[0]})`
                   : order.status === "completed"
-                  ? `Reprint for ${order.customer_name || "Customer"}`
-                  : `Print for ${order.customer_name || "Customer"}`}
+                  ? `Reprint (${(order.customer_name || "Customer").split(" ")[0]})`
+                  : `Print (${(order.customer_name || "Customer").split(" ")[0]})`}
               </span>
             </button>
 
