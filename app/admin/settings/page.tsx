@@ -240,7 +240,7 @@ export default function AdminSettingsPage() {
 
                 <div>
                   <label className="block text-xs font-bold text-slate-700 uppercase tracking-wider mb-1">
-                    Unique Shop Link Slug (e.g. heusen)
+                    Unique Shop Link Slug (e.g. preeti)
                   </label>
                   <input
                     type="text"
@@ -249,7 +249,7 @@ export default function AdminSettingsPage() {
                     className="w-full px-3 py-2 text-sm border border-slate-300 rounded-xl outline-none focus:border-indigo-500 font-mono"
                   />
                   <p className="text-[11px] text-indigo-600 font-medium mt-1">
-                    Customer upload link: <strong>/{settings.shop_slug || "heusen"}</strong>
+                    Customer upload link: <strong>/{settings.shop_slug || "preeti"}</strong>
                   </p>
                 </div>
 

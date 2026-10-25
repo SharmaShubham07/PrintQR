@@ -127,6 +127,14 @@ export default function DocumentPreviewModal({
                 </span>
                 <span>•</span>
                 <span>{file.copies} {file.copies === 1 ? "copy" : "copies"}</span>
+                {order && (
+                  <>
+                    <span>•</span>
+                    <span className="font-bold text-slate-900 bg-slate-200/80 px-2 py-0.5 rounded-md">
+                      👤 {order.customer_name} (Token #{order.token_number || 1})
+                    </span>
+                  </>
+                )}
               </div>
             </div>
           </div>
@@ -169,10 +177,12 @@ export default function DocumentPreviewModal({
               <button
                 type="button"
                 onClick={() => onPrint(file, order)}
-                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-xs font-bold transition shadow-xs"
+                className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-slate-900 hover:bg-indigo-600 text-white rounded-xl text-xs font-bold transition shadow-xs"
+                title={`Print file for ${order.customer_name}`}
               >
                 <Printer className="w-3.5 h-3.5" />
-                <span className="hidden sm:inline">1-Click Print</span>
+                <span className="hidden sm:inline">Print for {order.customer_name}</span>
+                <span className="sm:hidden">Print</span>
               </button>
             )}
 

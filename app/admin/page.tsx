@@ -511,12 +511,12 @@ export default function AdminDashboard() {
                                 {ord.files?.length || 1} file(s)
                               </span>
                               {ord.files?.some((f) => f.color_mode === "color") ? (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-gradient-to-r from-purple-600 to-pink-600 text-white shadow-xs">
-                                  🌈 Brother Color
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-purple-50 text-purple-700 border border-purple-200">
+                                  Brother Color
                                 </span>
                               ) : (
-                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-black bg-slate-900 text-white shadow-xs">
-                                  ⚫ Canon B&amp;W
+                                <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-semibold bg-slate-100 text-slate-800 border border-slate-300">
+                                  Canon B&amp;W
                                 </span>
                               )}
                             </div>
@@ -529,19 +529,19 @@ export default function AdminDashboard() {
                           </td>
                           <td className="py-3 px-4">
                             <span
-                              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
+                              className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-semibold ${
                                 isCompleted
                                   ? "bg-emerald-50 text-emerald-700 border border-emerald-200"
                                   : isQueued
                                   ? "bg-indigo-50 text-indigo-700 border border-indigo-200"
                                   : isPending
-                                  ? "bg-amber-100 text-amber-900 border border-amber-300 font-black animate-pulse"
+                                  ? "bg-amber-50 text-amber-800 border border-amber-300 font-bold"
                                   : "bg-slate-100 text-slate-700 border border-slate-200"
                               }`}
                             >
-                              {isPending && "⚠️ Payment Pending"}
-                              {isQueued && "📋 Paid & In Queue"}
-                              {isCompleted && "✅ Completed"}
+                              {isPending && "Payment Pending"}
+                              {isQueued && "Paid & In Queue"}
+                              {isCompleted && "Completed"}
                               {!isPending && !isQueued && !isCompleted && ord.status}
                             </span>
                           </td>
@@ -552,15 +552,15 @@ export default function AdminDashboard() {
                             {isPending ? (
                               <Link
                                 href={`/admin/orders?order=${ord.order_number}`}
-                                className="inline-flex items-center gap-1 text-xs font-bold text-emerald-600 hover:text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200"
+                                className="inline-flex items-center gap-1 text-xs font-semibold text-emerald-700 hover:text-emerald-800 bg-emerald-50 px-2.5 py-1 rounded-lg border border-emerald-200"
                               >
                                 <Printer className="w-3 h-3" />
-                                <span>Approve &amp; Print →</span>
+                                <span>Print for {ord.customer_name.split(" ")[0]} →</span>
                               </Link>
                             ) : (
                               <Link
                                 href={`/admin/orders?order=${ord.order_number}`}
-                                className="font-bold text-indigo-600 hover:text-indigo-800"
+                                className="font-semibold text-indigo-600 hover:text-indigo-800 text-xs"
                               >
                                 Manage →
                               </Link>

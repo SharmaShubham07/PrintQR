@@ -34,36 +34,32 @@ export default function LiveIncomingOrderSpotlight({
   const hasColor = order.files?.some((f) => f.color_mode === "color");
 
   return (
-    <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-slate-950 via-slate-900 to-indigo-950 border-2 border-indigo-500/40 shadow-2xl p-5 sm:p-6 text-white animate-in slide-in-from-top-4 duration-300">
-      {/* Background ambient glow */}
-      <div className="absolute -top-24 -right-24 w-60 h-60 bg-indigo-500/20 rounded-full blur-3xl pointer-events-none" />
-      <div className="absolute -bottom-24 -left-24 w-60 h-60 bg-cyan-500/15 rounded-full blur-3xl pointer-events-none" />
-
+    <div className="relative rounded-2xl bg-slate-900 border border-slate-800 p-4 sm:p-5 text-white shadow-sm animate-in slide-in-from-top-3 duration-200">
       {/* Top Banner Row */}
-      <div className="flex items-center justify-between gap-3 border-b border-white/10 pb-4 mb-4">
-        <div className="flex items-center gap-2.5 flex-wrap">
-          <span className="relative flex h-3 w-3">
+      <div className="flex items-center justify-between gap-3 border-b border-slate-800 pb-3 mb-3.5">
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="relative flex h-2.5 w-2.5">
             <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+            <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-emerald-500"></span>
           </span>
-          <span className="px-3 py-1 rounded-full text-xs font-black uppercase tracking-wider bg-emerald-500/20 text-emerald-300 border border-emerald-400/30 flex items-center gap-1.5 shadow-xs">
-            <Zap className="w-3.5 h-3.5 fill-emerald-300" />
-            LIVE INCOMING ORDER REQUEST
+          <span className="px-2.5 py-0.5 rounded-full text-[11px] font-bold uppercase tracking-wider bg-emerald-950 text-emerald-300 border border-emerald-800/80 flex items-center gap-1">
+            <Zap className="w-3 h-3 fill-emerald-300" />
+            Live Incoming Request
           </span>
-          <span className="text-xs text-slate-400 font-medium">
-            Received {formatTimeAgo(order.created_at)}
+          <span className="text-xs text-slate-400">
+            {formatTimeAgo(order.created_at)}
           </span>
         </div>
 
         <div className="flex items-center gap-2">
-          <span className="text-xs text-indigo-300 font-mono hidden sm:inline">
+          <span className="text-xs text-slate-400 font-mono hidden sm:inline">
             Ref: {order.order_number}
           </span>
           {onDismiss && (
             <button
               type="button"
               onClick={onDismiss}
-              className="p-1.5 text-slate-400 hover:text-white rounded-xl hover:bg-white/10 transition cursor-pointer"
+              className="p-1 text-slate-400 hover:text-white rounded-lg hover:bg-slate-800 transition cursor-pointer"
               title="Dismiss Spotlight"
             >
               <X className="w-4 h-4" />
@@ -73,77 +69,67 @@ export default function LiveIncomingOrderSpotlight({
       </div>
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 items-center">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 items-center">
         {/* Token & Customer Profile */}
-        <div className="lg:col-span-4 flex items-center gap-4">
-          <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-3xl bg-gradient-to-tr from-indigo-500 to-violet-500 border border-indigo-400/40 flex flex-col items-center justify-center shrink-0 shadow-lg shadow-indigo-500/30">
-            <span className="text-[10px] font-bold text-indigo-200 uppercase tracking-widest">TOKEN</span>
-            <span className="text-3xl sm:text-4xl font-black text-white leading-none">
+        <div className="lg:col-span-4 flex items-center gap-3.5">
+          <div className="w-12 h-12 rounded-xl bg-indigo-600 text-white flex flex-col items-center justify-center shrink-0 font-black shadow-xs">
+            <span className="text-[9px] uppercase font-bold tracking-wider text-indigo-200 leading-none">Token</span>
+            <span className="text-xl font-black leading-none mt-0.5">
               #{order.token_number || 1}
             </span>
           </div>
 
           <div className="min-w-0">
-            <h3 className="text-lg sm:text-xl font-black text-white truncate">
-              {order.customer_name || "Walk-in Customer"}
+            <div className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider">Customer</div>
+            <h3 className="text-base sm:text-lg font-bold text-white truncate flex items-center gap-1.5">
+              <span>{order.customer_name || "Walk-in Customer"}</span>
             </h3>
-            <p className="text-xs text-slate-300 font-mono mt-0.5 flex items-center gap-1.5">
+            <p className="text-xs text-slate-300 font-mono flex items-center gap-1 mt-0.5">
               <span>📱 +91 {order.customer_phone || "Walk-in"}</span>
             </p>
-            <div className="mt-1.5 flex items-center gap-2">
-              <span
-                className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                  order.status === "payment_pending"
-                    ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                    : "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                }`}
-              >
-                {order.status === "payment_pending" ? "⏳ Payment Awaiting Verification" : "✅ Payment Verified"}
-              </span>
-            </div>
           </div>
         </div>
 
         {/* Document & Printer Details */}
-        <div className="lg:col-span-5 space-y-2 border-y lg:border-y-0 lg:border-x border-white/10 py-3 lg:py-0 lg:px-5">
+        <div className="lg:col-span-5 space-y-2 border-y lg:border-y-0 lg:border-x border-slate-800 py-3 lg:py-0 lg:px-4">
           <div className="flex items-center justify-between">
-            <span className="text-xs font-bold text-slate-400 uppercase tracking-wider">
+            <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
               Documents ({order.files?.length || 0})
             </span>
             {hasColor ? (
-              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase bg-gradient-to-r from-pink-500 to-rose-500 text-white shadow-xs">
-                🌈 Brother DCP-T220 Color
+              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-purple-950 text-purple-300 border border-purple-800">
+                Brother Color
               </span>
             ) : (
-              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-black uppercase bg-slate-800 text-white border border-slate-700 shadow-xs">
-                ⚫ Canon MF3010 B&amp;W Laser
+              <span className="px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-slate-800 text-slate-200 border border-slate-700">
+                Canon B&amp;W
               </span>
             )}
           </div>
 
           {/* Documents Pills with Quick Preview */}
-          <div className="space-y-1.5 max-h-32 overflow-y-auto pr-1">
+          <div className="space-y-1.5 max-h-28 overflow-y-auto pr-1">
             {order.files && order.files.length > 0 ? (
               order.files.map((file, fIdx) => (
                 <div
                   key={fIdx}
-                  className="bg-white/10 hover:bg-white/15 border border-white/10 rounded-xl px-3 py-1.5 flex items-center justify-between text-xs transition"
+                  className="bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 rounded-xl px-3 py-1.5 flex items-center justify-between text-xs transition"
                 >
                   <div className="flex items-center gap-2 min-w-0 pr-2">
-                    <FileText className="w-3.5 h-3.5 text-indigo-300 shrink-0" />
-                    <span className="font-semibold text-white truncate max-w-[170px] sm:max-w-xs">
+                    <FileText className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
+                    <span className="font-medium text-slate-100 truncate max-w-[170px] sm:max-w-xs">
                       {file.file_name}
                     </span>
                   </div>
                   <div className="flex items-center gap-2 shrink-0">
-                    <span className="text-[11px] text-slate-300 font-mono">
+                    <span className="text-[11px] text-slate-400 font-mono">
                       {file.page_count}p • {file.copies}x
                     </span>
                     {onPreviewFile && (
                       <button
                         type="button"
                         onClick={() => onPreviewFile(file, order)}
-                        className="p-1 rounded-md bg-white/10 hover:bg-white/20 text-indigo-300 hover:text-white transition cursor-pointer"
+                        className="p-1 rounded-md bg-slate-700 hover:bg-slate-600 text-slate-200 hover:text-white transition cursor-pointer"
                         title="Preview Document"
                       >
                         <Eye className="w-3.5 h-3.5" />
@@ -159,10 +145,10 @@ export default function LiveIncomingOrderSpotlight({
         </div>
 
         {/* Amount & Primary Action Buttons */}
-        <div className="lg:col-span-3 flex flex-col justify-center space-y-3">
+        <div className="lg:col-span-3 flex flex-col justify-center space-y-2.5">
           <div className="flex items-baseline justify-between lg:justify-end gap-2">
-            <span className="text-xs text-slate-400 font-bold uppercase">Total Bill:</span>
-            <span className="text-2xl sm:text-3xl font-black text-white">
+            <span className="text-xs text-slate-400 font-semibold uppercase">Total:</span>
+            <span className="text-xl sm:text-2xl font-black text-white">
               ₹{Number(order.total_amount || 0).toFixed(2)}
             </span>
           </div>
@@ -172,25 +158,25 @@ export default function LiveIncomingOrderSpotlight({
               type="button"
               disabled={isPrinting}
               onClick={() => onExpressPrint?.(order)}
-              className="w-full py-3 px-4 bg-gradient-to-r from-cyan-400 via-indigo-400 to-violet-400 hover:from-cyan-300 hover:to-violet-300 text-slate-950 font-black text-xs rounded-xl transition flex items-center justify-center gap-2 shadow-lg shadow-indigo-500/25 cursor-pointer disabled:opacity-50"
+              className="w-full py-2.5 px-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold text-xs rounded-xl transition flex items-center justify-center gap-2 shadow-xs cursor-pointer disabled:opacity-50"
             >
-              <Printer className="w-4 h-4 fill-current" />
-              <span>{isPrinting ? "Printing In Progress..." : "1-Click Express Print"}</span>
+              <Printer className="w-4 h-4" />
+              <span>{isPrinting ? "Printing In Progress..." : `Print for ${order.customer_name || "Customer"}`}</span>
             </button>
 
             <div className="flex items-center gap-2">
               <button
                 type="button"
                 onClick={() => onPrintSlip?.(order)}
-                className="flex-1 py-2 px-3 bg-white/10 hover:bg-white/20 text-white rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 cursor-pointer"
+                className="flex-1 py-1.5 px-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 text-slate-200 rounded-xl text-xs font-semibold transition flex items-center justify-center gap-1.5 cursor-pointer"
               >
-                <span>Print Slip 🧾</span>
+                <span>Slip 🧾</span>
               </button>
               {onDecline && (
                 <button
                   type="button"
                   onClick={() => onDecline(order)}
-                  className="py-2 px-3 bg-rose-500/20 hover:bg-rose-500/30 border border-rose-500/40 text-rose-300 rounded-xl text-xs font-bold transition cursor-pointer"
+                  className="py-1.5 px-3 bg-rose-950/40 hover:bg-rose-900/50 border border-rose-800/60 text-rose-300 rounded-xl text-xs font-semibold transition cursor-pointer"
                 >
                   Decline
                 </button>
